@@ -30,19 +30,18 @@ export function HeroSection({ onCtaClick }: { onCtaClick: () => void }) {
               </h1>
 
               <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed font-light mx-auto">
-                Full visibility across your team&apos;s code, containers, and merges — with{' '}
-                <strong className="text-white font-medium">zero environment setup</strong> required. Spin up an isolated Docker instance in 30 seconds.
+                No more &apos;works on my machine.&apos; No more rogue commits. Your whole team in one sandbox, shipping together.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-4 justify-center">
                 <RainbowButton onClick={onCtaClick}>
                   Start a Sandbox &rarr;
                 </RainbowButton>
-                <button className="flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10">
-                  Watch Demo
-                </button>
+                <a href="#platform" className="flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10">
+                  See how it works ↓
+                </a>
               </div>
-              <p className="text-xs text-white/40 mb-10">No credit card · Free for hackathons · Ships today</p>
+              <p className="text-xs text-white/40 mb-10">No credit card · Free for hackathons · Start in 30 seconds</p>
             </div>
           }
         >
