@@ -6,14 +6,7 @@ const isProtectedRoute = createRouteMatcher([
   '/projects(.*)',
 ]);
 
-export default clerkMiddleware((auth, req) => {
-  if (isProtectedRoute(req)) {
-    const { userId } = auth();
-    if (!userId) {
-      return new Response('Unauthorized', { status: 401 });
-    }
-  }
-});
+export default clerkMiddleware();
 
 export const config = {
   matcher: [
