@@ -5,6 +5,7 @@ import { useAuth } from '@clerk/nextjs';
 import { Project } from '@hackathon/shared-types';
 import { Terminal, Box, Clock, Power, Loader2 } from 'lucide-react';
 import { getApiUrl, getApiHeaders } from '@/lib/api-client';
+import { InviteButton } from './InviteButton';
 
 interface ProjectCardProps {
   project: Project;
@@ -60,7 +61,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
         </div>
       </div>
       
-      <div className="p-4 bg-[#050505] flex justify-end">
+      <div className="p-4 bg-[#050505] flex items-center justify-between gap-2">
+        <InviteButton projectId={project.id} />
         {project.status === 'sleeping' ? (
           <button 
             onClick={handleWakeUp}
@@ -68,7 +70,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             className="flex items-center gap-2 px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/40 border border-yellow-600/50 text-yellow-500 hover:text-yellow-400 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
           >
             {isWaking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />}
-            {isWaking ? 'Restoring...' : 'Wake Up Container'}
+            {isWaking ? 'Restoring...' : 'Wake Up'}
           </button>
         ) : (
           <Link 

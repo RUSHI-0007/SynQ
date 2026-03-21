@@ -6,6 +6,7 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import { buildFileTree, FileNode } from '@/lib/file-tree';
 import { VoiceRoom } from '@/features/voice/VoiceRoom';
 import { getApiUrl, getApiHeaders } from '@/lib/api-client';
+import { InviteButton } from '@/features/projects/InviteButton';
 
 interface UnifiedSidebarProps {
   projectId: string;
@@ -107,6 +108,9 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
           <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
         </div>
         <span className="ml-4 font-semibold text-sm tracking-wide text-zinc-200">SYNQ IDE</span>
+        <div className="ml-auto">
+          <InviteButton projectId={projectId} />
+        </div>
       </div>
 
       {/* File Tree */}

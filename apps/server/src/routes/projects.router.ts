@@ -218,4 +218,50 @@ router.post('/:id/resume', async (req, res, next) => {
   }
 });
 
+// ─── POST /api/projects/:id/join ──────────────────────────────────────────
+// Called by the /join/[id] invite page after Clerk authenticates the user.
+router.post('/:id/join', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body as { userId: string };
+
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+
+    // 1. Verify the project exists
+    const cached = projectCache.get(id);
+    if (!cached) {
+      const { data: project, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', id)
+        .single();
+      if (error || !project) {
+        res.status(404).json({ error: 'Project not found' });
+        return;
+      }
+    }
+
+    // 2. Upsert into project_teammates (safe to call multiple times)
+    const { error: upsertError } = await supabase
+      .from('project_teammates')
+      .upsert(
+        { project_id: id, user_id: userId, role: 'member' },
+        { onConflict: 'project_id,user_id' }
+      );
+
+    if (upsertError) {
+      console.warn('[Supabase] Failed to upsert teammate:', upsertError.message);
+      res.status(500).json({ error: 'Failed to join project' });
+      return;
+    }
+
+    res.json({ success: true, projectId: id });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
