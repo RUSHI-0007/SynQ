@@ -264,4 +264,71 @@ router.post('/:id/join', async (req, res, next) => {
   }
 });
 
+// ─── POST /api/projects/:id/invite ────────────────────────────────────────
+// Accepts an email address, resolves it to a Clerk userId, and adds them to project_teammates.
+router.post('/:id/invite', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { email } = req.body as { email: string };
+
+    if (!email || typeof email !== 'string') {
+      res.status(400).json({ error: 'email is required' });
+      return;
+    }
+
+    // 1. Verify the project exists
+    const cached = projectCache.get(id);
+    if (!cached) {
+      const { data: project, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', id)
+        .single();
+      if (error || !project) {
+        res.status(404).json({ error: 'Project not found' });
+        return;
+      }
+    }
+
+    // 2. Look up the Clerk user by email
+    const { createClerkClient } = await import('@clerk/backend');
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY || '' });
+
+    const usersResult = await clerk.users.getUserList({ emailAddress: [email.toLowerCase().trim()] });
+    if (!usersResult.data || usersResult.data.length === 0) {
+      res.status(404).json({ error: 'No user found with that email. Make sure they have signed up for SYNQ first.' });
+      return;
+    }
+
+    const invitedUser = usersResult.data[0];
+
+    if (!invitedUser) {
+      res.status(404).json({ error: 'No user found with that email. Make sure they have signed up for SYNQ first.' });
+      return;
+    }
+
+    // 3. Upsert into project_teammates
+    const { error: upsertError } = await supabase
+      .from('project_teammates')
+      .upsert(
+        { project_id: id, user_id: invitedUser.id, role: 'member' },
+        { onConflict: 'project_id,user_id' }
+      );
+
+    if (upsertError) {
+      console.warn('[Supabase] Failed to upsert invited teammate:', upsertError.message);
+      res.status(500).json({ error: 'Failed to add teammate' });
+      return;
+    }
+
+    const name = invitedUser.firstName
+      ? `${invitedUser.firstName} ${invitedUser.lastName || ''}`.trim()
+      : invitedUser.username || email;
+
+    res.json({ success: true, name, userId: invitedUser.id });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
