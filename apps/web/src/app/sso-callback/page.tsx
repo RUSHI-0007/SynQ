@@ -9,10 +9,15 @@ export default function SSOCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    handleRedirectCallback({
-      afterSignInUrl: "/dashboard",
-      afterSignUpUrl: "/dashboard",
-    }).catch(() => {
+    // handleRedirectCallback can return undefined in some Clerk versions/states,
+    // so we wrap in Promise.resolve to safely attach .catch without crashing.
+    Promise.resolve(
+      handleRedirectCallback({
+        // Use the current non-deprecated prop names
+        fallbackRedirectUrl: "/dashboard",
+        signUpFallbackRedirectUrl: "/dashboard",
+      })
+    ).catch(() => {
       router.push("/");
     });
   }, [handleRedirectCallback, router]);
