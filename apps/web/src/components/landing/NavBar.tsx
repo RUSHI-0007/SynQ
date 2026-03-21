@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
+import { Menu, X } from 'lucide-react';
 import { RainbowButton } from '@/components/ui/RainbowButton';
 
 interface NavBarProps {
@@ -11,6 +12,7 @@ interface NavBarProps {
 
 export function NavBar({ onLoginClick }: NavBarProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,12 +51,54 @@ export function NavBar({ onLoginClick }: NavBarProps) {
           </RainbowButton>
         </SignedOut>
         <SignedIn>
-          <Link href="/dashboard" className="text-white/80 hover:text-white transition-colors text-[13px] font-medium mr-2">
+          <Link href="/dashboard" className="text-white/80 hover:text-white transition-colors text-[13px] font-medium mr-2 hidden sm:block">
             Dashboard &rarr;
           </Link>
           <UserButton afterSignOutUrl="/" />
         </SignedIn>
+
+        {/* Hamburger Icon */}
+        <button 
+          className="md:hidden text-white ml-2 p-1 focus:outline-none"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="absolute top-[60px] left-0 w-full bg-[#0a0a10]/95 backdrop-blur-xl border-b border-white/10 md:hidden flex flex-col items-center py-6 gap-6 shadow-2xl z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+          <a href="#hero" onClick={() => setMobileMenuOpen(false)} className="text-white/80 hover:text-white font-medium">Features</a>
+          <a href="#platform" onClick={() => setMobileMenuOpen(false)} className="text-white/80 hover:text-white font-medium">Platform</a>
+          <a href="#foundation" onClick={() => setMobileMenuOpen(false)} className="text-white/80 hover:text-white font-medium">Stack</a>
+          <a href="#cta" onClick={() => setMobileMenuOpen(false)} className="text-white/80 hover:text-white font-medium">Pricing</a>
+          <a href="#footer" onClick={() => setMobileMenuOpen(false)} className="text-white/80 hover:text-white font-medium">Docs</a>
+          
+          <div className="flex flex-col items-center gap-4 mt-4 w-full px-6">
+            <SignedOut>
+              <button 
+                onClick={() => { setMobileMenuOpen(false); onLoginClick(); }}
+                className="text-white font-medium w-full py-2 bg-white/5 rounded-full border border-white/10"
+              >
+                Log in
+              </button>
+              <RainbowButton onClick={() => { setMobileMenuOpen(false); onLoginClick(); }} className="w-full">
+                Get Early Access
+              </RainbowButton>
+            </SignedOut>
+            <SignedIn>
+              <Link 
+                href="/dashboard" 
+                onClick={() => setMobileMenuOpen(false)} 
+                className="text-white font-medium w-full py-2 bg-indigo-600 rounded-full text-center"
+              >
+                Go to Dashboard
+              </Link>
+            </SignedIn>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

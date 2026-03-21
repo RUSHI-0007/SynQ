@@ -23,10 +23,10 @@ export function HeroSection({ onCtaClick }: { onCtaClick: () => void }) {
                 New · Yjs real-time sync v2.0 now live
               </div>
 
-              <h1 className="text-5xl md:text-7xl lg:text-[80px] font-bold tracking-tight mb-6 leading-[0.95]">
-                The IDE your<br />
-                <span className="text-grad">hackathon team</span><br />
-                <span className="text-white/40">actually deserves.</span>
+              <h1 className="text-5xl md:text-6xl lg:text-[76px] font-bold tracking-tight mb-6 leading-[0.95]">
+                The only IDE where<br />
+                <span className="text-grad">your team votes</span><br />
+                <span className="text-white/40">before anything ships.</span>
               </h1>
 
               <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed font-light mx-auto">
@@ -60,7 +60,7 @@ export function HeroSection({ onCtaClick }: { onCtaClick: () => void }) {
             </div>
 
             {/* Sub Header */}
-            <div className="flex h-12 shrink-0 items-center border-b border-white/[0.06] bg-black/20 px-4 text-sm font-mono text-white/60 overflow-hidden">
+            <div className="flex h-12 shrink-0 items-center border-b border-white/[0.06] bg-black/20 px-4 text-sm font-mono text-white/60 overflow-x-auto scrollbar-hide">
               <div className="flex items-center gap-2 shrink-0">
                 <span>📁</span>
                 <strong className="text-white hidden sm:block">synq-collab</strong>
@@ -144,8 +144,8 @@ export function HeroSection({ onCtaClick }: { onCtaClick: () => void }) {
               </div>
 
               {/* Editor Split */}
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="flex flex-1 p-4 md:p-6 font-mono text-xs md:text-sm leading-relaxed overflow-y-auto">
+              <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+                <div className="flex flex-1 p-4 md:p-6 font-mono text-xs md:text-sm leading-relaxed overflow-x-auto overflow-y-auto">
                   <div className="flex flex-col text-white/80">
                     <div className="text-white/30 mb-2">{'//'} 🔴 rushi.k · 🟣 ayaan.m editing</div>
                     <div className="whitespace-pre-wrap">

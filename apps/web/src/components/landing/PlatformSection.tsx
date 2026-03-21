@@ -27,7 +27,6 @@ export function PlatformSection() {
       }, 300);
     };
 
-    wrap.textContent = phrases[0] || '';
     const interval = setInterval(tick, 2500);
     return () => clearInterval(interval);
   }, []);
@@ -46,7 +45,9 @@ export function PlatformSection() {
             <span
               ref={wrapRef}
               className="inline-block transition-all duration-400 ease-[cubic-bezier(.16,1,.3,1)] min-w-[180px] md:min-w-[280px] text-left"
-            />
+            >
+              Every tool
+            </span>
           </span>
           <br />your team needs.
         </h2>

@@ -11,7 +11,11 @@ import { BentoSection } from '@/components/landing/BentoSection';
 import { OrbitalSection } from '@/components/landing/OrbitalSection';
 import { CTASection } from '@/components/landing/CTASection';
 import { Footer } from '@/components/landing/Footer';
-import { SignInPage } from '@/components/ui/sign-in-flow-1';
+
+const SignInPage = dynamic(
+  () => import('@/components/ui/sign-in-flow-1').then(m => m.SignInPage),
+  { ssr: false }
+);
 
 export default function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -67,7 +71,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="bg-[#030303] min-h-screen text-white font-sans selection:bg-indigo-500/30">
+    <div className="bg-[#030303] min-h-screen w-full overflow-x-hidden text-white font-sans selection:bg-indigo-500/30">
       {/* Background fixed elements */}
       <div id="stars-global" className="fixed inset-0 pointer-events-none z-0">
         {[...Array(60)].map((_, i) => {

@@ -18,7 +18,7 @@ export function CTASection() {
         </h2>
         
         <p className="aos d2 text-white/50 text-xl max-w-xl text-center mb-12 font-light">
-          Join 10,000+ hackathon hackers building faster organically.
+          Built for 24-hour hackathons. Shipped at ETHGlobal, HackMIT, and college fests across India.
         </p>
 
         <div className="aos d3 flex flex-col sm:flex-row gap-4">
