@@ -1,0 +1,221 @@
+import { Router } from 'express';
+import { ContainerService } from '../services/container.service';
+import { FrameworkTemplate, Project } from '@hackathon/shared-types';
+import { supabase } from '../lib/supabase';
+import crypto from 'crypto';
+
+const router = Router();
+
+// ─── In-memory fallback store ─────────────────────────────────────────────
+// Populated on every scaffold so projects are always retrievable even when
+// the Supabase `projects` table hasn't been created yet.
+type StoredProject = Project & { ownerId: string; templateId: string };
+const projectCache = new Map<string, StoredProject>();
+
+// ─── GET /api/projects ────────────────────────────────────────────────────
+router.get('/', async (req, res, next) => {
+  try {
+    const { scopeId } = req.query;
+    if (!scopeId || typeof scopeId !== 'string') {
+      res.status(400).json({ error: 'scopeId query parameter is required' });
+      return;
+    }
+
+    const { data: projects, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('ownerId', scopeId)
+      .order('createdAt', { ascending: false });
+
+    // Projects present in cache that were never persisted to Supabase
+    const cachedForScope = Array.from(projectCache.values())
+      .filter(p => p.ownerId === scopeId);
+
+    if (error) {
+      console.warn('[Supabase] Ignoring fetch error or table missing:', error.message);
+      res.json(cachedForScope);
+      return;
+    }
+
+    // Merge: DB rows first, then cache-only entries that didn't make it to DB
+    const dbIds = new Set((projects ?? []).map((p: any) => p.id));
+    const cacheOnly = cachedForScope.filter(p => !dbIds.has(p.id));
+    res.json([...(projects ?? []), ...cacheOnly]);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── POST /api/projects/scaffold ─────────────────────────────────────────
+router.post('/scaffold', async (req, res, next) => {
+  try {
+    const { name, templateId, scopeId } = req.body as {
+      name: string;
+      templateId: FrameworkTemplate;
+      scopeId: string;
+    };
+
+    if (!templateId || !scopeId) {
+      res.status(400).json({ error: 'templateId and scopeId are required' });
+      return;
+    }
+
+    const projectId = crypto.randomUUID();
+    const projectName = name || `Project ${projectId.substring(0, 6)}`;
+
+    const newProject: StoredProject = {
+      id: projectId,
+      name: projectName,
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ownerId: scopeId,
+      templateId,
+    };
+
+    // Always write to in-memory cache FIRST — guarantees GET /:id always works
+    projectCache.set(projectId, newProject);
+
+    const { error } = await supabase
+      .from('projects')
+      .insert([{
+        id: projectId,
+        name: projectName,
+        status: 'active',
+        ownerId: scopeId,
+        templateId,
+      }]);
+
+    if (error) {
+      console.warn('[Supabase] Could not persist project (using in-memory cache):', error.message);
+    }
+
+    const containerConfig = await ContainerService.createProjectContainer(templateId, projectId);
+    res.json({ project: newProject, container: containerConfig });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── GET /api/projects/:id ────────────────────────────────────────────────
+router.get('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Check in-memory cache first (always fresh, zero latency)
+    const cached = projectCache.get(id);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
+    // 2. Fall back to Supabase
+    const { data: project, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    res.json(project);
+  } catch (error) {
+    next(error);
+  }
+});
+// ─── GET /api/projects/:id/teammates ──────────────────────────────────────
+router.get('/:id/teammates', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Get user_ids from Supabase project_teammates table
+    const { data: members, error } = await supabase
+      .from('project_teammates')
+      .select('user_id, role')
+      .eq('project_id', id);
+
+    if (error) {
+      console.warn('[Supabase] Failed to fetch teammates:', error.message);
+      res.status(500).json({ error: 'Failed to fetch teammates' });
+      return;
+    }
+
+    if (!members || members.length === 0) {
+      res.json([]);
+      return;
+    }
+
+    // 2. Resolve Clerk profiles in parallel
+    const { createClerkClient } = await import('@clerk/backend');
+    // Using simple initialization relying on CLERK_SECRET_KEY env var
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY || '' });
+
+    const enrichedTeammates = await Promise.all(
+      members.map(async (m) => {
+        try {
+          const user = await clerk.users.getUser(m.user_id);
+          return {
+            id: user.id,
+            name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.username || 'Anonymous',
+            avatarUrl: user.imageUrl,
+            role: m.role,
+          };
+        } catch (clerkErr) {
+          console.warn(`[Clerk] Could not resolve user ${m.user_id}:`, clerkErr);
+          // Fallback if Clerk API errors out for a specific user
+          return {
+            id: m.user_id,
+            name: 'Unknown User',
+            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user_id}`,
+            role: m.role,
+          };
+        }
+      })
+    );
+
+    res.json(enrichedTeammates);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── POST /api/projects/:id/resume ────────────────────────────────────────
+router.post('/:id/resume', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Fetch project to get templateId
+    const { data: project, error } = await supabase
+      .from('projects')
+      .select('templateId, status')
+      .eq('id', id)
+      .single();
+
+    if (error || !project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    if (project.status === 'active') {
+       res.json({ message: 'Project is already active' });
+       return;
+    }
+
+    // 2. Scaffold/Restore container
+    // Because we previously wired `createProjectContainer` to check Supabase Storage
+    // for backups, calling this will automatically execute native restore instead of git clone!
+    const containerConfig = await ContainerService.createProjectContainer(
+      project.templateId as FrameworkTemplate, 
+      id
+    );
+
+    res.json({ message: 'Restored', container: containerConfig });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export default router;

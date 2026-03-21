@@ -1,0 +1,92 @@
+.hero-section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 140px;
+  overflow: hidden;
+}
+
+/* Beams */
+.beam {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 600px;
+  pointer-events: none;
+  z-index: 0;
+}
+.beam-wide {
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1000px;
+  height: 600px;
+  background: radial-gradient(ellipse at bottom, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+  filter: blur(40px);
+}
+.beam-thin {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 400px;
+  background: radial-gradient(ellipse at bottom, rgba(168, 85, 247, 0.4) 0%, transparent 70%);
+  filter: blur(20px);
+}
+
+/* Animated gradient text */
+.text-grad {
+  background: linear-gradient(to right, #ffffff, #a5b4fc, #c084fc, #ffffff);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 6s linear infinite;
+}
+@keyframes shine {
+  to { background-position: 300% center; }
+}
+
+/* Mockup Chrome Frame */
+.mockup-chrome {
+  background: rgba(8, 8, 12, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 30px 60px -15px rgba(0,0,0,0.8), 0 0 100px 0 rgba(99, 102, 241, 0.15);
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* V-Bars Audio Visualizer simulation */
+.vb {
+  width: 3px;
+  background: #22c55e;
+  border-radius: 2px;
+  animation: v-bounce var(--vd) ease-in-out infinite alternate;
+  animation-delay: var(--vdl);
+}
+@keyframes v-bounce {
+  0% { height: 2px; }
+  100% { height: 14px; }
+}
+
+/* Blinking cursor */
+.ci {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  vertical-align: middle;
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+}
+.ci-p { background: #c084fc; box-shadow: 0 0 6px #c084fc; }
+.ci-k { background: #60a5fa; box-shadow: 0 0 6px #60a5fa; }
+@keyframes blink { 50% { opacity: 0; } }
