@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { FileNode } from '@hackathon/shared-types';
 import type * as monaco from 'monaco-editor';
+import { getApiUrl, getApiHeaders } from '@/lib/api-client';
 
 export interface UseFileSystemReturn {
   tree: FileNode[];
@@ -42,8 +43,8 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
       setError(null);
       try {
         const token = await getToken();
-        const res = await fetch(`http://localhost:4000/api/fs/${projectId}/tree`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await fetch(getApiUrl(`api/fs/${projectId}/tree`), {
+          headers: getApiHeaders(token),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({ error: res.statusText }));
@@ -74,8 +75,8 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
     try {
       const token = await getToken();
       const res = await fetch(
-        `http://localhost:4000/api/fs/${projectId}/file?path=${encodeURIComponent(path)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        getApiUrl(`api/fs/${projectId}/file?path=${encodeURIComponent(path)}`),
+        { headers: getApiHeaders(token) }
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: res.statusText }));

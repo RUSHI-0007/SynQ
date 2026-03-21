@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Project, FrameworkTemplate, ContainerConfig } from '@hackathon/shared-types';
+import { getApiUrl, getApiHeaders } from '@/lib/api-client';
 
 export function useProjects() {
   const { getToken, userId, orgId } = useAuth();
@@ -18,10 +19,8 @@ export function useProjects() {
       // Use active organization ID if one exists, otherwise user ID
       const scopeId = orgId || userId; 
       
-      const res = await fetch(`http://localhost:4000/api/projects?scopeId=${scopeId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const res = await fetch(getApiUrl(`api/projects?scopeId=${scopeId}`), {
+        headers: getApiHeaders(token)
       });
 
       if (!res.ok) throw new Error(await res.text() || 'Failed to fetch projects');
@@ -47,11 +46,11 @@ export function useProjects() {
       
       if (!scopeId) throw new Error("Authentication required");
 
-      const res = await fetch('http://localhost:4000/api/projects/scaffold', {
+      const res = await fetch(getApiUrl('api/projects/scaffold'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+        headers: { 
+          ...getApiHeaders(token),
+          'Content-Type': 'application/json' 
         },
         body: JSON.stringify({ name, templateId, scopeId })
       });

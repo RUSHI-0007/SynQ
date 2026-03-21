@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { getApiUrl, getApiHeaders } from '@/lib/api-client';
 import { Project } from '@hackathon/shared-types';
 
 export function useProject(projectId: string) {
@@ -14,8 +15,8 @@ export function useProject(projectId: string) {
     setError(null);
     try {
       const token = await getToken();
-      const res = await fetch(`http://localhost:4000/api/projects/${projectId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await fetch(getApiUrl(`api/projects/${projectId}`), {
+        headers: getApiHeaders(token)
       });
       if (!res.ok) throw new Error(await res.text() || 'Project not found');
       const data = await res.json();

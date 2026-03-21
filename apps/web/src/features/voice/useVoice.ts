@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { getApiUrl, getApiHeaders } from '@/lib/api-client';
 
 export function useVoice(projectId: string, clerkUserName: string | null) {
   const [token, setToken] = useState<string | null>(null);
@@ -15,8 +16,9 @@ export function useVoice(projectId: string, clerkUserName: string | null) {
     setError(null);
 
     try {
-      // In production, ensure this points to the right backend URL using env vars
-      const res = await fetch(`http://localhost:4000/api/voice/token?projectId=${projectId}&participantName=${encodeURIComponent(clerkUserName)}`);
+      const res = await fetch(getApiUrl(`api/voice/token?projectId=${projectId}&participantName=${encodeURIComponent(clerkUserName)}`), {
+        headers: getApiHeaders()
+      });
       
       if (!res.ok) {
         throw new Error(await res.text() || 'Failed to map Voice credentials.');

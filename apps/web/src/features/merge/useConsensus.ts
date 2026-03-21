@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MergeProposal, ProposalVote } from '@hackathon/shared-types';
+import { getApiUrl, getApiHeaders } from '@/lib/api-client';
 
 export function useConsensus(projectId: string) {
   const [activeProposal, setActiveProposal] = useState<MergeProposal | null>(null);
@@ -101,9 +102,12 @@ export function useConsensus(projectId: string) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:4000/api/merge/propose', {
+      const res = await fetch(getApiUrl('api/merge/propose'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          ...getApiHeaders(),
+          'Content-Type': 'application/json' 
+        },
         body: JSON.stringify({ projectId, authorId, filesChanged, diffPayload }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -125,9 +129,12 @@ export function useConsensus(projectId: string) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:4000/api/merge/vote', {
+      const res = await fetch(getApiUrl('api/merge/vote'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          ...getApiHeaders(),
+          'Content-Type': 'application/json' 
+        },
         body: JSON.stringify({ proposalId, voterId, vote }),
       });
       if (!res.ok) throw new Error(await res.text());

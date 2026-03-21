@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { getApiUrl, getApiHeaders } from '@/lib/api-client';
 
 export interface Teammate {
   id: string;
@@ -22,8 +23,8 @@ export function useTeammates(projectId: string) {
       try {
         setIsLoading(true);
         const token = await getToken();
-        const res = await fetch(`http://localhost:4000/api/projects/${projectId}/teammates`, {
-          headers: { Authorization: `Bearer ${token}` }
+        const res = await fetch(getApiUrl(`api/projects/${projectId}/teammates`), {
+          headers: getApiHeaders(token)
         });
 
         if (!res.ok) {

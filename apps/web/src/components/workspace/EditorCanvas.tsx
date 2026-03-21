@@ -7,6 +7,7 @@ import * as Y from 'yjs';
 import { MonacoBinding } from 'y-monaco';
 import { WebsocketProvider } from 'y-websocket';
 import { useAuth } from '@clerk/nextjs';
+import { getApiUrl, getWsUrl, getApiHeaders } from '@/lib/api-client';
 
 // Detect the language and return the correct bash command
 const getLanguage = (filePath: string): string => {
@@ -73,12 +74,12 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       try {
         const token = await getToken();
         const res = await fetch(
-          `http://localhost:4000/api/workspace/${projectId}/file?path=${encodeURIComponent(activeFile)}`,
+          getApiUrl(`api/workspace/${projectId}/file?path=${encodeURIComponent(activeFile)}`),
           {
             method: 'PUT',
             headers: {
+              ...getApiHeaders(token),
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ content }),
           }
@@ -102,7 +103,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
     const doc = new Y.Doc();
     const provider = new WebsocketProvider(
-      'ws://localhost:4000/api/ws',
+      getWsUrl('api/ws'),
       projectId,
       doc
     );

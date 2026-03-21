@@ -5,6 +5,7 @@ import { Folder, FolderOpen, FileCode2, FilePlus, ChevronDown, ChevronRight, Mic
 import { useAuth, useUser } from '@clerk/nextjs';
 import { buildFileTree, FileNode } from '@/lib/file-tree';
 import { VoiceRoom } from '@/features/voice/VoiceRoom';
+import { getApiUrl, getApiHeaders } from '@/lib/api-client';
 
 interface UnifiedSidebarProps {
   projectId: string;
@@ -34,8 +35,8 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
   const fetchTree = useCallback(async () => {
     try {
       const token = await getToken();
-      const res = await fetch(`http://localhost:4000/api/workspace/${projectId}/files`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(getApiUrl(`api/workspace/${projectId}/files`), {
+        headers: getApiHeaders(token),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: res.statusText }));
@@ -71,11 +72,15 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
   const handleCreateFile = async () => {
     const name = newFileName.trim();
     if (!name) { setIsCreating(false); setNewFileName(''); return; }
+
     try {
       const token = await getToken();
-      await fetch(`http://localhost:4000/api/workspace/${projectId}/files`, {
+      await fetch(getApiUrl(`api/workspace/${projectId}/files`), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 
+          ...getApiHeaders(token),
+          'Content-Type': 'application/json' 
+        },
         body: JSON.stringify({ path: name }),
       });
       setIsCreating(false);

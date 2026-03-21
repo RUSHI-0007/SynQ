@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { getWsUrl } from '@/lib/api-client';
 
 // Resize message sent to the backend when xterm dimensions change
 interface ResizeMessage {
@@ -40,7 +41,7 @@ export function useTerminal(projectId: string): UseTerminalReturn {
 
     setStatus('connecting');
 
-    const url = `ws://localhost:4000/api/terminal/${projectId}`;
+    const url = getWsUrl(`api/terminal/${projectId}`);
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     wsRef.current = ws;

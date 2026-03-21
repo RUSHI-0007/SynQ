@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { Project } from '@hackathon/shared-types';
 import { Terminal, Box, Clock, Power, Loader2 } from 'lucide-react';
+import { getApiUrl, getApiHeaders } from '@/lib/api-client';
 
 interface ProjectCardProps {
   project: Project;
@@ -18,11 +19,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
     try {
       setIsWaking(true);
       const token = await getToken();
-      const res = await fetch(`http://localhost:4000/api/projects/${project.id}/resume`, {
+      const res = await fetch(getApiUrl(`api/projects/${project.id}/resume`), {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: getApiHeaders(token)
       });
 
       if (!res.ok) {

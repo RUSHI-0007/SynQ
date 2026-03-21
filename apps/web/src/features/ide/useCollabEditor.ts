@@ -3,6 +3,7 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { MonacoBinding } from 'y-monaco';
 import type * as monaco from 'monaco-editor';
+import { getWsUrl } from '@/lib/api-client';
 
 /**
  * Manages the Yjs collaboration binding for Monaco.
@@ -30,7 +31,7 @@ export function useCollabEditor(roomId: string, userId: string) {
     const doc = new Y.Doc();
     docRef.current = doc;
 
-    const wsUrl = `ws://localhost:4000/api/ws/${roomId}`;
+    const wsUrl = getWsUrl(`api/ws/${roomId}`);
     const provider = new WebsocketProvider(wsUrl, roomId, doc, { connect: true });
     providerRef.current = provider;
 
@@ -78,7 +79,7 @@ export function useCollabEditor(roomId: string, userId: string) {
       const doc = new Y.Doc();
       docRef.current = doc;
 
-      const wsUrl = `ws://localhost:4000/api/ws/${roomId}`;
+      const wsUrl = getWsUrl(`api/ws/${roomId}`);
       const provider = new WebsocketProvider(wsUrl, roomId, doc, { connect: true });
       providerRef.current = provider;
 
