@@ -306,7 +306,7 @@ function FlowCard({ flow, palette, index, visible }: { flow: any, palette: any, 
   return (
     <article
       ref={cardRef}
-      className={`bento3-card group relative flex flex-col justify-between overflow-hidden rounded-[28px] border ${palette.cardBorder} ${palette.card} p-8 transition-colors duration-500 min-h-[320px]`}
+      className={`bento3-card group relative flex flex-col justify-between overflow-hidden rounded-[28px] border ${palette.cardBorder} ${palette.card} p-6 md:p-8 transition-colors duration-500 min-h-[280px] sm:min-h-[320px]`}
       data-visible={visible}
       style={{ "--bento3-delay": `${index * 90}ms` } as React.CSSProperties}
       onMouseMove={setGlow}

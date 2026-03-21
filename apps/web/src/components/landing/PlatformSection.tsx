@@ -39,12 +39,12 @@ export function PlatformSection() {
           PLATFORM
         </div>
         
-        <h2 className="aos d1 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-center leading-tight mb-6">
+        <h2 className="aos d1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-center leading-tight mb-6">
           One platform.&nbsp;
           <span className="inline-flex overflow-hidden align-bottom text-[#a5b4fc]" id="rt-wrap">
             <span
               ref={wrapRef}
-              className="inline-block transition-all duration-400 ease-[cubic-bezier(.16,1,.3,1)] min-w-[180px] md:min-w-[280px] text-left"
+              className="inline-block transition-all duration-400 ease-[cubic-bezier(.16,1,.3,1)] min-w-[140px] sm:min-w-[180px] md:min-w-[280px] text-left"
             >
               Every tool
             </span>

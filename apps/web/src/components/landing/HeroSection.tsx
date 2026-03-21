@@ -23,13 +23,13 @@ export function HeroSection({ onCtaClick }: { onCtaClick: () => void }) {
                 New · Yjs real-time sync v2.0 now live
               </div>
 
-              <h1 className="text-5xl md:text-6xl lg:text-[76px] font-bold tracking-tight mb-6 leading-[0.95]">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[76px] font-bold tracking-tight mb-6 leading-[0.95]">
                 The only IDE where<br />
                 <span className="text-grad">your team votes</span><br />
                 <span className="text-white/40">before anything ships.</span>
               </h1>
 
-              <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed font-light mx-auto">
+              <p className="text-base md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed font-light mx-auto px-4 md:px-0">
                 No more &apos;works on my machine.&apos; No more rogue commits. Your whole team in one sandbox, shipping together.
               </p>
 

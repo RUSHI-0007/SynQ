@@ -49,10 +49,10 @@ export function OrbitalSection() {
         <span className="bg-[#6366f1] w-[6px] h-[6px] rounded-full inline-block" />
         FOUNDATION
       </div>
-      <h2 className="aos d1 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-center leading-tight mb-6">
+      <h2 className="aos d1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-center leading-tight mb-6">
         Built on a rock-solid stack
       </h2>
-      <p className="aos d2 text-white/50 text-lg md:text-xl max-w-2xl text-center mb-32 font-light">
+      <p className="aos d2 text-white/50 text-base md:text-xl max-w-2xl text-center mb-32 font-light">
         Every technology was chosen for one reason: it works at 3am during a hackathon.
       </p>
 
@@ -100,9 +100,9 @@ export function OrbitalSection() {
               </div>
 
               {isActive && (
-                <div className="orbital-card absolute left-1/2 -translate-x-1/2 top-full mt-4 w-64 bg-black/90 backdrop-blur-xl border border-white/20 rounded-xl p-5 shadow-2xl text-left cursor-default">
-                  <h4 className="text-white font-bold text-lg mb-2">{node.title}</h4>
-                  <p className="text-white/60 text-sm font-light leading-relaxed">{node.desc}</p>
+                <div className="orbital-card absolute left-1/2 -translate-x-1/2 top-full mt-4 w-[200px] sm:w-64 bg-black/90 backdrop-blur-xl border border-white/20 rounded-xl p-4 sm:p-5 shadow-2xl text-left cursor-default">
+                  <h4 className="text-white font-bold text-base sm:text-lg mb-1 sm:mb-2">{node.title}</h4>
+                  <p className="text-white/60 text-xs sm:text-sm font-light leading-relaxed">{node.desc}</p>
                 </div>
               )}
             </div>

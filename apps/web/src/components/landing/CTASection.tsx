@@ -13,11 +13,11 @@ export function CTASection() {
           SYN<span className="text-indigo-500">Q</span>
         </div>
         
-        <h2 className="aos d1 text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-center leading-[0.95] mb-8">
+        <h2 className="aos d1 text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-center leading-[0.95] mb-8">
           Ready to ship<br />without the chaos?
         </h2>
         
-        <p className="aos d2 text-white/50 text-xl max-w-xl text-center mb-12 font-light">
+        <p className="aos d2 text-white/50 text-base md:text-xl max-w-xl text-center mb-12 font-light">
           Built for 24-hour hackathons. Shipped at ETHGlobal, HackMIT, and college fests across India.
         </p>
 
