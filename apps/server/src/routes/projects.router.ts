@@ -34,35 +34,54 @@ router.get('/', async (req, res, next) => {
       .select('project_id')
       .eq('user_id', scopeId);
 
-    let sharedProjects: any[] = [];
+    let sharedDbProjects: any[] = [];
+    let sharedCacheProjects: any[] = [];
+
     if (teammateRows && teammateRows.length > 0) {
       const sharedProjectIds = teammateRows.map((r: any) => r.project_id);
+      
+      // Try from DB
       const { data: shared } = await supabase
         .from('projects')
         .select('*')
         .in('id', sharedProjectIds);
-      sharedProjects = shared ?? [];
+      sharedDbProjects = shared ?? [];
+
+      // Try from memory cache (since Supabase 'projects' table might not exist)
+      const allCached = Array.from(projectCache.values());
+      sharedCacheProjects = allCached.filter(p => sharedProjectIds.includes(p.id));
     }
 
-    // 3. In-memory cache fallback for projects not yet in DB
+    // 3. In-memory cache fallback for OWNED projects
     const cachedForScope = Array.from(projectCache.values())
       .filter(p => p.ownerId === scopeId);
 
     if (ownedError) {
       console.warn('[Supabase] Ignoring fetch error or table missing:', ownedError.message);
-      res.json(cachedForScope);
+      // Merge cached owned + cached shared
+      const allCached = [...cachedForScope, ...sharedCacheProjects];
+      const uniqueCached = Array.from(new Map(allCached.map(p => [p.id, p])).values());
+      res.json(uniqueCached);
       return;
     }
 
-    // 4. Merge all three sources, deduplicate by id
-    const allDbProjects = [...(ownedProjects ?? []), ...sharedProjects];
+    // 4. Merge all sources, deduplicate by id
+    const allDbProjects = [...(ownedProjects ?? []), ...sharedDbProjects];
     const dbIds = new Set(allDbProjects.map((p: any) => p.id));
-    const cacheOnly = cachedForScope.filter(p => !dbIds.has(p.id));
-    res.json([...allDbProjects, ...cacheOnly]);
+    
+    // Add any cached projects (owned or shared) that aren't in the DB
+    const allCacheRelevant = [...cachedForScope, ...sharedCacheProjects];
+    const cacheOnly = allCacheRelevant.filter(p => !dbIds.has(p.id));
+    
+    const finalMerge = [...allDbProjects, ...cacheOnly];
+    const uniqueFinal = Array.from(new Map(finalMerge.map(p => [p.id, p])).values());
+    
+    res.json(uniqueFinal);
   } catch (error) {
     next(error);
   }
 });
+
 
 // ─── POST /api/projects/scaffold ─────────────────────────────────────────
 router.post('/scaffold', async (req, res, next) => {
