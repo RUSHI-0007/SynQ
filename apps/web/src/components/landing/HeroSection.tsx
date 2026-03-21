@@ -152,7 +152,7 @@ export function HeroSection({ onCtaClick }: { onCtaClick: () => void }) {
                       <span className="text-purple-400">import </span>
                       <span className="text-yellow-200">{'{'} useCollab {'}'} </span>
                       <span className="text-purple-400">from </span>
-                      <span className="text-green-300">'@synq/yjs'</span>
+                      <span className="text-green-300">&apos;@synq/yjs&apos;</span>
                       <span className="ci ci-p inline-block ml-1 h-3 w-1.5 bg-pink-500 align-middle animate-pulse" />
                     </div>
                     <div className="h-4" />

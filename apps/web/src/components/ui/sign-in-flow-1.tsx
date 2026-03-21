@@ -95,7 +95,12 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
     }
     return {
       u_colors: {
-        value: colorsArray.map((color) => [color[0] / 255, color[1] / 255, color[2] / 255]),
+        value: colorsArray.map((color) => {
+          const r = color?.[0] ?? 0;
+          const g = color?.[1] ?? 0;
+          const b = color?.[2] ?? 0;
+          return [r / 255, g / 255, b / 255];
+        }),
         type: "uniform3fv",
       },
       u_opacities: { value: opacities, type: "uniform1fv" },

@@ -239,14 +239,14 @@ export const MergeModal: React.FC<MergeModalProps> = ({
                   </div>
                   <div className="text-zinc-300">
                     <span className="text-green-400 select-none mr-4">+</span>
-                    <span className="text-green-300">export const Button = ({'{'} variant = 'primary' {'}'}) =&gt; {'{'}</span>
+                    <span className="text-green-300">export const Button = ({'{'} variant = &apos;primary&apos; {'}'}) =&gt; {'{'}</span>
                   </div>
                   <div className="text-zinc-500">
                     <span className="text-transparent select-none mr-4"> </span> return (
                   </div>
                   <div className="text-zinc-500 line-through opacity-70">
                     <span className="text-red-400 select-none mr-4">-</span>
-                    <span className="text-red-300">    &lt;button className="bg-blue-500"&gt;</span>
+                    <span className="text-red-300">    &lt;button className=&quot;bg-blue-500&quot;&gt;</span>
                   </div>
                   <div className="text-zinc-300">
                     <span className="text-green-400 select-none mr-4">+</span>
@@ -274,6 +274,7 @@ export const MergeModal: React.FC<MergeModalProps> = ({
 
                   return (
                     <div key={mate.id} className="relative group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={mate.avatarUrl}
                         alt={mate.name}
