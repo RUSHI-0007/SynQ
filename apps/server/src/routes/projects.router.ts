@@ -21,26 +21,44 @@ router.get('/', async (req, res, next) => {
       return;
     }
 
-    const { data: projects, error } = await supabase
+    // 1. Projects the user OWNS
+    const { data: ownedProjects, error: ownedError } = await supabase
       .from('projects')
       .select('*')
       .eq('ownerId', scopeId)
       .order('createdAt', { ascending: false });
 
-    // Projects present in cache that were never persisted to Supabase
+    // 2. Projects the user is a TEAMMATE of (but doesn't own)
+    const { data: teammateRows } = await supabase
+      .from('project_teammates')
+      .select('project_id')
+      .eq('user_id', scopeId);
+
+    let sharedProjects: any[] = [];
+    if (teammateRows && teammateRows.length > 0) {
+      const sharedProjectIds = teammateRows.map((r: any) => r.project_id);
+      const { data: shared } = await supabase
+        .from('projects')
+        .select('*')
+        .in('id', sharedProjectIds);
+      sharedProjects = shared ?? [];
+    }
+
+    // 3. In-memory cache fallback for projects not yet in DB
     const cachedForScope = Array.from(projectCache.values())
       .filter(p => p.ownerId === scopeId);
 
-    if (error) {
-      console.warn('[Supabase] Ignoring fetch error or table missing:', error.message);
+    if (ownedError) {
+      console.warn('[Supabase] Ignoring fetch error or table missing:', ownedError.message);
       res.json(cachedForScope);
       return;
     }
 
-    // Merge: DB rows first, then cache-only entries that didn't make it to DB
-    const dbIds = new Set((projects ?? []).map((p: any) => p.id));
+    // 4. Merge all three sources, deduplicate by id
+    const allDbProjects = [...(ownedProjects ?? []), ...sharedProjects];
+    const dbIds = new Set(allDbProjects.map((p: any) => p.id));
     const cacheOnly = cachedForScope.filter(p => !dbIds.has(p.id));
-    res.json([...(projects ?? []), ...cacheOnly]);
+    res.json([...allDbProjects, ...cacheOnly]);
   } catch (error) {
     next(error);
   }

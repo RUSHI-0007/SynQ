@@ -14,7 +14,7 @@ export default function SSOCallbackPage() {
     Promise.resolve(
       handleRedirectCallback({
         // Use the current non-deprecated prop names
-        fallbackRedirectUrl: "/dashboard",
+        signInFallbackRedirectUrl: "/dashboard",
         signUpFallbackRedirectUrl: "/dashboard",
       })
     ).catch(() => {
