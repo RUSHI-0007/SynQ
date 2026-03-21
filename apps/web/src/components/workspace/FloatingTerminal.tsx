@@ -9,9 +9,11 @@ import 'xterm/css/xterm.css';
 
 interface FloatingTerminalProps {
   projectId: string;
+  isVisible?: boolean;
+  onClose?: () => void;
 }
 
-export const FloatingTerminal: React.FC<FloatingTerminalProps> = ({ projectId }) => {
+export const FloatingTerminal: React.FC<FloatingTerminalProps> = ({ projectId, isVisible = true, onClose }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -169,9 +171,11 @@ export const FloatingTerminal: React.FC<FloatingTerminalProps> = ({ projectId })
       
       <div 
         className={`absolute z-30 bg-[#0a0a0c]/80 backdrop-blur-3xl border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          isMaximized 
-            ? 'inset-2 md:inset-4 md:left-[304px] lg:inset-6 lg:left-[344px] w-auto h-auto' // Responsive maximized bounds
-            : 'bottom-2 right-2 md:bottom-6 md:right-6 w-[calc(100vw-1rem)] md:w-[550px] h-[300px] md:h-[360px] max-w-full'
+          !isVisible 
+            ? 'opacity-0 scale-95 pointer-events-none translate-y-4' // Hide visually but keep mounted
+            : isMaximized 
+              ? 'inset-2 md:inset-4 md:left-[304px] lg:inset-6 lg:left-[344px] w-auto h-auto opacity-100 scale-100 translate-y-0' // Responsive maximized bounds
+              : 'bottom-2 right-2 md:bottom-6 md:right-6 w-[calc(100vw-1rem)] md:w-[550px] h-[300px] md:h-[360px] max-w-full opacity-100 scale-100 translate-y-0'
         }`}
       >
         {/* Terminal Header */}
@@ -208,7 +212,11 @@ export const FloatingTerminal: React.FC<FloatingTerminalProps> = ({ projectId })
             >
               {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
             </button>
-            <button className="text-zinc-500 hover:text-white transition-colors">
+            <button 
+              onClick={onClose}
+              className="text-zinc-500 hover:text-white transition-colors"
+              title="Close Terminal"
+            >
               <X size={15} />
             </button>
           </div>

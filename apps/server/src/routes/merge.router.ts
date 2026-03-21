@@ -12,9 +12,9 @@ router.post('/propose', async (req: Request, res: Response, next: NextFunction) 
   try {
     const { projectId, authorId, commitMessage, diffPayload, filesChanged, githubOwner, githubRepo } = req.body;
 
-    if (!projectId || !authorId || !diffPayload || !filesChanged || !githubOwner || !githubRepo) {
+    if (!projectId || !authorId || !diffPayload || !filesChanged) {
       res.status(400).json({
-        error: 'projectId, authorId, diffPayload, filesChanged, githubOwner, githubRepo are required',
+        error: 'projectId, authorId, diffPayload, filesChanged are required',
       });
       return;
     }

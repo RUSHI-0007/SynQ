@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useUser } from "@clerk/nextjs";
 import { UnifiedSidebar } from "@/components/workspace/UnifiedSidebar";
 import { DynamicIsland } from "@/components/workspace/DynamicIsland";
 import { useFileSystem } from "@/features/ide/useFileSystem";
 import { useTeammates } from "@/features/ide/useTeammates";
+import { useConsensus } from "@/features/merge/useConsensus";
 
 // These components use browser-only APIs (y-websocket, xterm, supabase realtime)
 // and MUST be loaded client-side only to avoid "window is not defined" SSR crashes.
@@ -27,8 +28,31 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
   const { user } = useUser();
   const { tree, activeFile, activeContent, openFile } = useFileSystem(params.id);
   const { teammates } = useTeammates(params.id);
+  const { proposeMerge, loading: isProposing } = useConsensus(params.id);
   
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [isTerminalVisible, setIsTerminalVisible] = useState(true);
+
+  // When proposing a merge, we send the *current active file* as the diff
+  // In a real app, this would diff the entire workspace against the last snapshot
+  const handleProposeMerge = async () => {
+    if (!user || !activeFile) return;
+    try {
+      await proposeMerge(user.id, [activeFile], activeContent);
+      // The Realtime subscription in MergeModal will automatically open it
+      // when the new proposal is detected via Postgres Changes!
+      setMergeOpen(true);
+    } catch (err) {
+      console.error("Failed to propose merge:", err);
+    }
+  };
+
+  // Auto-reopen the terminal if a command is injected (e.g., clicking Run)
+  useEffect(() => {
+    const handleReopen = () => setIsTerminalVisible(true);
+    window.addEventListener('inject-terminal-command', handleReopen);
+    return () => window.removeEventListener('inject-terminal-command', handleReopen);
+  }, []);
 
   return (
     <div className="h-[100dvh] w-screen overflow-hidden bg-[#050505] flex flex-col md:flex-row p-2 md:p-4 gap-2 md:gap-4 font-sans text-white relative selection:bg-indigo-500/30">
@@ -45,7 +69,8 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
         
         {/* 3. Dynamic Island */}
         <DynamicIsland 
-          onProposeMerge={() => setMergeOpen(true)} 
+          onProposeMerge={handleProposeMerge} 
+          isProposing={isProposing}
         />
 
         {/* 4. Editor Canvas (client-only) */}
@@ -57,7 +82,11 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
         />
 
         {/* 5. Floating Terminal (client-only) */}
-        <FloatingTerminal projectId={params.id} />
+        <FloatingTerminal 
+          projectId={params.id} 
+          isVisible={isTerminalVisible}
+          onClose={() => setIsTerminalVisible(false)}
+        />
 
       </main>
 
