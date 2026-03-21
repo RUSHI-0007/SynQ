@@ -8,7 +8,10 @@ const isProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware((auth, req) => {
   if (isProtectedRoute(req)) {
-    auth().protect();
+    const { userId } = auth();
+    if (!userId) {
+      return new Response('Unauthorized', { status: 401 });
+    }
   }
 });
 
