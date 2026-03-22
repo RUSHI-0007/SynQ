@@ -1,12 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Folder, FolderOpen, FileCode2, FilePlus, ChevronDown, ChevronRight, Mic, Loader2 } from 'lucide-react';
+import { Folder, FolderOpen, FileCode2, FilePlus, ChevronDown, ChevronRight, Mic, Loader2, Users } from 'lucide-react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { buildFileTree, FileNode } from '@/lib/file-tree';
 import { VoiceRoom } from '@/features/voice/VoiceRoom';
 import { getApiUrl, getApiHeaders } from '@/lib/api-client';
 import { InviteButton } from '@/features/projects/InviteButton';
+
+interface Teammate {
+  id: string;
+  name: string;
+  avatarUrl: string;
+  role: string;
+}
 
 interface UnifiedSidebarProps {
   projectId: string;
@@ -27,6 +34,10 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Teammates state
+  const [teammates, setTeammates] = useState<Teammate[]>([]);
+  const [isLoadingTeammates, setIsLoadingTeammates] = useState(true);
 
   // VS Code-style new file state
   const [isCreating, setIsCreating] = useState(false);
@@ -62,6 +73,29 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
     const interval = setInterval(fetchTree, 5000);
     return () => clearInterval(interval);
   }, [fetchTree]);
+
+  const fetchTeammates = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch(getApiUrl(`api/projects/${projectId}/teammates`), {
+        headers: getApiHeaders(token),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTeammates(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch teammates', err);
+    } finally {
+      setIsLoadingTeammates(false);
+    }
+  }, [projectId, getToken]);
+
+  useEffect(() => {
+    fetchTeammates();
+    const interval = setInterval(fetchTeammates, 10000); // refresh every 10s
+    return () => clearInterval(interval);
+  }, [fetchTeammates]);
 
   // Focus the inline input as soon as it mounts
   useEffect(() => {
@@ -178,6 +212,40 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
 
       {/* Live Voice / Teammates */}
       <div className="shrink-0 border-t border-white/10 p-4 bg-[#0A0A0A]">
+         {/* Teammates Section */}
+         <div className="mb-6">
+           <div className="flex items-center gap-2 text-zinc-400 mb-3">
+             <Users size={16} />
+             <span className="text-xs leading-none font-medium uppercase tracking-widest">Teammates</span>
+           </div>
+           
+           {isLoadingTeammates ? (
+             <div className="flex items-center gap-2 text-zinc-500 text-xs animate-pulse">
+               <Loader2 size={12} className="animate-spin" />
+               <span>Loading...</span>
+             </div>
+           ) : (
+             <div className="flex flex-col gap-2">
+               {teammates.map((member) => (
+                 <div key={member.id} className="flex items-center gap-3 group">
+                   <img 
+                     src={member.avatarUrl} 
+                     alt={member.name}
+                     className="w-7 h-7 rounded-full border border-white/10"
+                   />
+                   <div className="flex flex-col">
+                     <span className="text-[13px] font-medium text-zinc-300 truncate max-w-[140px] group-hover:text-white transition-colors">{member.name}</span>
+                     <span className="text-[10px] text-zinc-500 capitalize">{member.role}</span>
+                   </div>
+                 </div>
+               ))}
+               {teammates.length === 0 && (
+                 <span className="text-xs text-zinc-500">No teammates listed</span>
+               )}
+             </div>
+           )}
+         </div>
+
          <div className="flex items-center justify-between mb-4">
            <div className="flex items-center gap-2 text-zinc-400">
              <Mic size={16} />
