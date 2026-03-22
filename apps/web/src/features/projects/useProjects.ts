@@ -23,7 +23,13 @@ export function useProjects() {
         headers: getApiHeaders(token)
       });
 
-      if (!res.ok) throw new Error(await res.text() || 'Failed to fetch projects');
+      if (!res.ok) {
+        const text = await res.text();
+        if (text.includes('ERR_NGROK') || text.includes('502 Bad Gateway') || text.trim().startsWith('<')) {
+          throw new Error('Backend server is offline. Please start your local server.');
+        }
+        throw new Error(text || 'Failed to fetch projects');
+      }
       const data = await res.json();
       setProjects(data as Project[]);
     } catch (err: any) {
@@ -55,7 +61,13 @@ export function useProjects() {
         body: JSON.stringify({ name, templateId, scopeId })
       });
 
-      if (!res.ok) throw new Error(await res.text() || 'Failed to scaffold project Container');
+      if (!res.ok) {
+        const text = await res.text();
+        if (text.includes('ERR_NGROK') || text.includes('502 Bad Gateway') || text.trim().startsWith('<')) {
+          throw new Error('Backend server is offline. Please start your local server.');
+        }
+        throw new Error(text || 'Failed to scaffold project Container');
+      }
       
       const data = await res.json();
       
