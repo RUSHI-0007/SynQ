@@ -186,7 +186,7 @@ export function InviteButton({ projectId, className = '' }: InviteButtonProps) {
                   : <><Link2 size={15} /> Copy Invite Link</>}
               </button>
               <p className="text-xs text-zinc-600 text-center">
-                They'll be added automatically after signing up and visiting the link.
+                They&apos;ll be added automatically after signing up and visiting the link.
               </p>
             </div>
           </div>

@@ -228,6 +228,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
              <div className="flex flex-col gap-2">
                {teammates.map((member) => (
                  <div key={member.id} className="flex items-center gap-3 group">
+                   {/* eslint-disable-next-line @next/next/no-img-element */}
                    <img 
                      src={member.avatarUrl} 
                      alt={member.name}

@@ -7,6 +7,11 @@ const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost
 
 export const getApiUrl = (path: string = ''): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  
+  if (typeof window !== 'undefined') {
+    return cleanPath;
+  }
+  
   return `${NEXT_PUBLIC_API_URL}${cleanPath}`;
 };
 

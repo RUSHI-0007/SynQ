@@ -69,13 +69,13 @@ export default function JoinProjectPage() {
         ) : status === 'success' ? (
           <>
             <CheckCircle2 className="text-emerald-400" size={40} />
-            <p className="text-zinc-100 text-lg font-semibold">You're in! 🎉</p>
+            <p className="text-zinc-100 text-lg font-semibold">You&apos;re in! 🎉</p>
             <p className="text-zinc-400 text-sm">Redirecting you to the workspace…</p>
           </>
         ) : (
           <>
             <AlertCircle className="text-red-400" size={40} />
-            <p className="text-zinc-100 text-lg font-semibold">Couldn't join project</p>
+            <p className="text-zinc-100 text-lg font-semibold">Couldn&apos;t join project</p>
             <p className="text-zinc-500 text-sm">{errorMsg}</p>
             <button
               onClick={() => router.push('/dashboard')}
