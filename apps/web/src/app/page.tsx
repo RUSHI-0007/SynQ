@@ -18,8 +18,21 @@ const SignInPage = dynamic(
   { ssr: false }
 );
 
+import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+
 export default function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const { isLoaded, isSignedIn } = useAuth();
+  const router = useRouter();
+
+  const handleCtaClick = () => {
+    if (isLoaded && isSignedIn) {
+      router.push('/dashboard');
+    } else {
+      setIsLoginOpen(true);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -90,11 +103,11 @@ export default function LandingPage() {
       </div>
 
       <NavBar onLoginClick={() => setIsLoginOpen(true)} />
-      <HeroSection onCtaClick={() => setIsLoginOpen(true)} />
+      <HeroSection onCtaClick={handleCtaClick} />
       <PlatformSection />
       <BentoSection />
       <OrbitalSection />
-      <CTASection />
+      <CTASection onCtaClick={handleCtaClick} />
       <Footer />
       {isLoginOpen && <SignInPage onClose={() => setIsLoginOpen(false)} />}
     </div>

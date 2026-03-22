@@ -2,7 +2,7 @@
 
 import { RainbowButton } from '@/components/ui/RainbowButton';
 
-export function CTASection() {
+export function CTASection({ onCtaClick }: { onCtaClick: () => void }) {
   return (
     <section id="cta" className="relative w-full max-w-7xl mx-auto px-6 py-32 flex flex-col items-center z-10 border-t border-white/[0.04]">
       {/* Background glow */}
@@ -22,7 +22,7 @@ export function CTASection() {
         </p>
 
         <div className="aos d3 flex flex-col sm:flex-row gap-4">
-          <RainbowButton>
+          <RainbowButton onClick={onCtaClick}>
             Start a Sandbox &rarr;
           </RainbowButton>
           <button className="flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10">
