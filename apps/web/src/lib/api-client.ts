@@ -9,7 +9,7 @@ export const getApiUrl = (path: string = ''): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   
   if (typeof window !== 'undefined') {
-    return cleanPath;
+    return `/proxy${cleanPath}`;
   }
   
   return `${NEXT_PUBLIC_API_URL}${cleanPath}`;
