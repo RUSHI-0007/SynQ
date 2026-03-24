@@ -42,7 +42,9 @@ export function useTerminal(projectId: string): UseTerminalReturn {
     setStatus('connecting');
 
     const url = getWsUrl(`api/terminal/${projectId}`);
-    const ws = new WebSocket(url);
+    // Passing 'ngrok-skip-browser-warning' as a subprotocol tricks Ngrok's free tier
+    // into bypassing the browser warning interstitial page that otherwise blocks WSS handshakes!
+    const ws = new WebSocket(url, ['ngrok-skip-browser-warning']);
     ws.binaryType = 'arraybuffer';
     wsRef.current = ws;
 

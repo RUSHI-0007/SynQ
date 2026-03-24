@@ -102,10 +102,18 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     editorRef.current = editorInstance;
 
     const doc = new Y.Doc();
+
+    class NgrokBypassWebSocket extends window.WebSocket {
+      constructor(url: string | URL) {
+        super(url, ['ngrok-skip-browser-warning']);
+      }
+    }
+
     const provider = new WebsocketProvider(
       getWsUrl('api/ws'),
       projectId,
-      doc
+      doc,
+      { WebSocketPolyfill: NgrokBypassWebSocket }
     );
 
     const type = doc.getText(activeFile || 'monaco');
