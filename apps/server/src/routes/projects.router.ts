@@ -260,7 +260,7 @@ router.post('/:id/resume', async (req, res, next) => {
 router.post('/:id/join', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { userId } = req.body as { userId: string };
+    const { userId, role = 'member' } = req.body as { userId: string, role?: string };
 
     if (!userId) {
       res.status(400).json({ error: 'userId is required' });
@@ -285,7 +285,7 @@ router.post('/:id/join', async (req, res, next) => {
     const { error: upsertError } = await supabase
       .from('project_teammates')
       .upsert(
-        { project_id: id, user_id: userId, role: 'member' },
+        { project_id: id, user_id: userId, role },
         { onConflict: 'project_id,user_id' }
       );
 

@@ -44,6 +44,25 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
   const [newFileName, setNewFileName] = useState('');
   const newFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Live presence state from EditorCanvas Yjs Awareness
+  const [activeUsers, setActiveUsers] = useState<Array<{ name: string, color: string, activeFile: string }>>([]);
+
+  useEffect(() => {
+    const handlePresence = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const states = customEvent.detail;
+      const parsedUsers = states.map((s: any) => ({
+         name: s.user?.name || 'Anonymous',
+         color: s.user?.color || '#888',
+         activeFile: s.activeFile
+      })).filter((u: any) => !!u.activeFile);
+      
+      setActiveUsers(parsedUsers);
+    };
+    window.addEventListener('ide-presence', handlePresence);
+    return () => window.removeEventListener('ide-presence', handlePresence);
+  }, []);
+
   const fetchTree = useCallback(async () => {
     try {
       const token = await getToken();
@@ -201,6 +220,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 node={node}
                 activeFile={activeFile}
                 onSelectFile={onSelectFile}
+                activeUsers={activeUsers}
               />
             ))}
             {fileTree.length === 0 && (
@@ -269,17 +289,21 @@ const FileTreeNode = ({
   node,
   activeFile,
   onSelectFile,
+  activeUsers,
   depth = 0,
 }: {
   node: FileNode;
   activeFile: string | null;
   onSelectFile: (path: string) => void;
+  activeUsers: Array<{ name: string, color: string, activeFile: string }>;
   depth?: number;
 }) => {
   const [isOpen, setIsOpen] = useState(node.isOpen ?? false);
 
   if (node.type === 'file') {
     const isActive = activeFile === node.path;
+    const editingUsers = activeUsers.filter(u => u.activeFile === node.path);
+    
     return (
       <div
         onClick={() => onSelectFile(node.path)}
@@ -289,7 +313,22 @@ const FileTreeNode = ({
         }`}
       >
         <FileCode2 size={14} className={isActive ? 'text-indigo-400 shrink-0' : 'text-zinc-500 shrink-0'} />
-        <span className="truncate text-sm">{node.name}</span>
+        <span className="truncate text-sm flex-1">{node.name}</span>
+        
+        {editingUsers.length > 0 && (
+          <div className="flex items-center -space-x-1 shrink-0 ml-2">
+            {editingUsers.map((u, i) => (
+               <div 
+                 key={i} 
+                 className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-bold text-white border border-[#0a0a0c] shadow-sm shrink-0" 
+                 style={{ backgroundColor: u.color }} 
+                 title={`${u.name} is editing this file`}
+               >
+                 {u.name.substring(0,1).toUpperCase()}
+               </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -316,11 +355,12 @@ const FileTreeNode = ({
       {isOpen && node.children && (
         <div>
           {node.children.map((child) => (
-            <FileTreeNode
+              <FileTreeNode
               key={child.id}
               node={child}
               activeFile={activeFile}
               onSelectFile={onSelectFile}
+              activeUsers={activeUsers}
               depth={depth + 1}
             />
           ))}

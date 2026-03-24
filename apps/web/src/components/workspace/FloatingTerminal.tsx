@@ -170,16 +170,35 @@ export const FloatingTerminal: React.FC<FloatingTerminalProps> = ({ projectId, i
       `}} />
       
       <div 
-        className={`absolute z-30 bg-[#0a0a0c]/80 backdrop-blur-3xl border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`absolute z-30 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           !isVisible 
-            ? 'opacity-0 scale-95 pointer-events-none translate-y-4' // Hide visually but keep mounted
+            ? 'bottom-2 right-2 md:bottom-6 md:right-6 w-auto h-auto opacity-100 scale-100 translate-y-0 rounded-full cursor-pointer hover:scale-105 active:scale-95 shadow-[0_8px_30px_rgb(0,0,0,0.5)]'
             : isMaximized 
-              ? 'inset-2 md:inset-4 md:left-[304px] lg:inset-6 lg:left-[344px] w-auto h-auto opacity-100 scale-100 translate-y-0' // Responsive maximized bounds
-              : 'bottom-2 right-2 md:bottom-6 md:right-6 w-[calc(100vw-1rem)] md:w-[550px] h-[300px] md:h-[360px] max-w-full opacity-100 scale-100 translate-y-0'
+              ? 'inset-2 md:inset-4 md:left-[304px] lg:inset-6 lg:left-[344px] w-auto h-auto opacity-100 scale-100 translate-y-0 bg-[#0a0a0c]/80 backdrop-blur-3xl border border-white/10 rounded-xl shadow-2xl flex flex-col' 
+              : 'bottom-2 right-2 md:bottom-6 md:right-6 w-[calc(100vw-1rem)] md:w-[550px] h-[300px] md:h-[360px] max-w-full opacity-100 scale-100 translate-y-0 bg-[#0a0a0c]/80 backdrop-blur-3xl border border-white/10 rounded-xl shadow-2xl flex flex-col'
         }`}
+        onClick={() => {
+          if (!isVisible && onClose) {
+             // We hijack onClose to act as a toggle from the parent state
+             // But actually, the parent passes onClose={() => setIsTerminalVisible(false)}
+             // Wait, if it's minimized, we need to tell the parent to SHOW it.
+             // We'll dispatch a custom event since we don't have an onOpen prop, or just use the existing inject event trick.
+             window.dispatchEvent(new CustomEvent('inject-terminal-command', { detail: '' }));
+          }
+        }}
       >
-        {/* Terminal Header */}
-        <div className="h-10 flex items-center justify-between px-4 border-b border-white/10 bg-white/[0.04] shrink-0">
+        {/* Minimized Pill View */}
+        {!isVisible && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#0a0a0c] border border-white/10 rounded-full shrink-0">
+            <Terminal size={14} className={status === 'connected' ? 'text-emerald-400' : 'text-zinc-400'} />
+            <span className="text-xs font-medium text-zinc-300 uppercase tracking-widest leading-none">Console</span>
+            <div className={`w-2 h-2 rounded-full ${status === 'connected' ? 'bg-emerald-500 animate-pulse' : status === 'connecting' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'}`} />
+          </div>
+        )}
+
+        {/* Terminal Header (Full View) */}
+        {isVisible && (
+          <div className="h-10 flex items-center justify-between px-4 border-b border-white/10 bg-white/[0.04] shrink-0">
           <div className="flex items-center gap-2">
             <Terminal size={14} className="text-zinc-400" />
             <span className="text-xs font-medium text-zinc-300 uppercase tracking-widest leading-none">Container Shell</span>
@@ -221,10 +240,10 @@ export const FloatingTerminal: React.FC<FloatingTerminalProps> = ({ projectId, i
             </button>
           </div>
         </div>
+        )}
         
         {/* Terminal Content Box */}
-        {/* We fix the clipping by adding overflow-hidden on the parent and letting xterm.js manage viewport scrolling securely */}
-        <div className="flex-1 p-2 pl-3 bg-[#050505]/40 relative overflow-hidden">
+        <div className={`flex-1 p-2 pl-3 bg-[#050505]/40 relative overflow-hidden ${!isVisible ? 'hidden' : ''}`}>
            <div ref={containerRef} className="w-full h-full" />
         </div>
       </div>
