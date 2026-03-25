@@ -62,6 +62,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
   const [toastVisible, setToastVisible] = useState(false);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(["src", "app"]));
   const [aiOpen, setAiOpen] = useState(false);
+  const [activePresence, setActivePresence] = useState<any[]>([]);
   
   // File Operations State
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
@@ -95,6 +96,15 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
       setOpenTabs(prev => [...prev, activeFile]);
     }
   }, [activeFile, openTabs]);
+
+  // Listen for Monaco Yjs Presence
+  useEffect(() => {
+    const handlePresence = (e: any) => {
+      setActivePresence(e.detail || []);
+    };
+    window.addEventListener('ide-presence', handlePresence);
+    return () => window.removeEventListener('ide-presence', handlePresence);
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -420,16 +430,54 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
               {/* TEAMMATES SECTION */}
               <div className="shrink-0 flex flex-col min-h-0 border-t border-white/5 pb-2">
                 <div className="sb-head text-[10px] text-zinc-500 font-semibold tracking-wider uppercase pt-4 pb-2 px-3">
-                  Teammates
+                  Teammates & Guests
                 </div>
                 <div className="px-2 space-y-0.5 max-h-[120px] overflow-y-auto">
-                  {teammates.map(t => (
-                    <div key={t.id} className="flex items-center gap-2 group hover:bg-white/5 px-2 py-1.5 rounded-lg cursor-pointer">
-                      <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0" style={{ backgroundImage: `url(${t.avatarUrl})`, backgroundSize: 'cover' }}></div>
-                      <span className="text-xs text-zinc-400 group-hover:text-zinc-200 truncate flex-1">{t.name}</span>
-                      {t.role === 'owner' && <span className="text-[9px] text-rose-400/80 uppercase tracking-widest">Admin</span>}
-                    </div>
-                  ))}
+                  {/* Filter out duplicates by name between DB teammates and Live Presence */}
+                  {(() => {
+                    const uniqueNames = new Set<string>();
+                    const members: React.ReactNode[] = [];
+                    
+                    // Render DB Teammates
+                    teammates.forEach(t => {
+                      const isOnline = activePresence.some(p => p.user?.name === t.name);
+                      uniqueNames.add(t.name);
+                      members.push(
+                        <div key={t.id} className="flex items-center gap-2 group hover:bg-white/5 px-2 py-1.5 rounded-lg cursor-pointer">
+                          <div className="relative shrink-0">
+                            <div className="w-5 h-5 rounded-full bg-zinc-800" style={{ backgroundImage: `url(${t.avatarUrl})`, backgroundSize: 'cover' }}></div>
+                            <div className={`absolute -bottom-0.5 right-0 w-2 h-2 rounded-full border border-[#010409] ${isOnline ? 'bg-emerald-500' : 'bg-zinc-600'}`}></div>
+                          </div>
+                          <span className="text-xs text-zinc-400 group-hover:text-zinc-200 truncate flex-1">{t.name}</span>
+                          {t.role === 'owner' && <span className="text-[9px] text-rose-400/80 uppercase tracking-widest">Admin</span>}
+                        </div>
+                      );
+                    });
+
+                    // Render Active External Guests
+                    activePresence.forEach((p, idx) => {
+                      if (p.user?.name && !uniqueNames.has(p.user.name)) {
+                        uniqueNames.add(p.user.name);
+                        members.push(
+                           <div key={`guest-${idx}`} className="flex items-center gap-2 group hover:bg-white/5 px-2 py-1.5 rounded-lg cursor-pointer relative overflow-hidden">
+                             <div className="relative shrink-0 z-10">
+                               <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white/90 shadow-sm" style={{ backgroundColor: p.user.color || '#6366f1' }}>
+                                 {p.user.name.charAt(0).toUpperCase()}
+                               </div>
+                               <div className="absolute -bottom-0.5 right-0 w-2 h-2 rounded-full border border-[#010409] bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                             </div>
+                             <span className="text-xs text-white/90 font-medium truncate flex-1 z-10 drop-shadow-sm">{p.user.name}</span>
+                             <span className="text-[9px] text-emerald-400/90 font-bold uppercase tracking-widest z-10">Live</span>
+                             <div className="absolute inset-0 opacity-10 blur-xl" style={{ backgroundColor: p.user.color || '#6366f1' }}></div>
+                           </div>
+                        );
+                      }
+                    });
+
+                    return members.length > 0 ? members : (
+                      <div className="px-2 py-2 text-[11px] text-zinc-600 italic">No teammates yet</div>
+                    );
+                  })()}
                 </div>
               </div>
 

@@ -161,7 +161,7 @@ export class FsService {
 
     // Prevent path traversal
     const safePath = filePath.replace(/\.\.\//g, '').replace(/^\/+/, '');
-    const absolutePath = `/workspace/${safePath}`;
+    const absolutePath = `./${safePath}`;
 
     const { stdout, stderr } = await execInContainer(container, ['cat', absolutePath]);
 
@@ -211,7 +211,7 @@ export class FsService {
   static async createFile(projectId: string, filePath: string): Promise<void> {
     const container = await FsService.getContainer(projectId);
     const safePath = filePath.replace(/\.\.\//g, '').replace(/^\/+/, '');
-    const absolutePath = `/workspace/${safePath}`;
+    const absolutePath = `./${safePath}`;
     const { stderr } = await execInContainer(container, [
       'sh', '-c',
       `mkdir -p "$(dirname "${absolutePath}")" && touch "${absolutePath}"`,
@@ -230,7 +230,7 @@ export class FsService {
     const container = await FsService.getContainer(projectId);
 
     const safePath = filePath.replace(/\.\.\//g, '').replace(/^\/+/, '');
-    const absolutePath = `/workspace/${safePath}`;
+    const absolutePath = `./${safePath}`;
 
     // Ensure parent directories exist first
     await execInContainer(container, [
@@ -264,10 +264,10 @@ export class FsService {
   static async deleteFile(projectId: string, filePath: string): Promise<void> {
     const container = await FsService.getContainer(projectId);
     const safePath = filePath.replace(/\.\.\//g, '').replace(/^\/+/, '');
-    const absolutePath = `/workspace/${safePath}`;
+    const absolutePath = `./${safePath}`;
 
     // Protect against deleting the root workspace
-    if (absolutePath === '/workspace' || absolutePath === '/workspace/') {
+    if (absolutePath === './' || absolutePath === '.') {
       throw new Error('Cannot delete the root workspace folder.');
     }
 
@@ -287,12 +287,12 @@ export class FsService {
     const container = await FsService.getContainer(projectId);
     
     const safeOldPath = oldPath.replace(/\.\.\//g, '').replace(/^\/+/, '');
-    const absoluteOldPath = `/workspace/${safeOldPath}`;
+    const absoluteOldPath = `./${safeOldPath}`;
     
     const safeNewPath = newPath.replace(/\.\.\//g, '').replace(/^\/+/, '');
-    const absoluteNewPath = `/workspace/${safeNewPath}`;
+    const absoluteNewPath = `./${safeNewPath}`;
 
-    if (absoluteOldPath === '/workspace' || absoluteOldPath === '/workspace/') {
+    if (absoluteOldPath === './' || absoluteOldPath === '.') {
       throw new Error('Cannot rename the root workspace folder.');
     }
 
