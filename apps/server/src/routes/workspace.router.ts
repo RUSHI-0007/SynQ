@@ -98,4 +98,52 @@ router.put('/:projectId/file', async (req, res, next) => {
   }
 });
 
+/**
+ * DELETE /api/workspace/:projectId/files?path=src/App.tsx
+ * Deletes a file or directory.
+ * Query: ?path=string
+ * Response: { success: true }
+ */
+router.delete('/:projectId/files', async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const filePath = req.query['path'] as string;
+
+    if (!projectId) { res.status(400).json({ error: 'projectId is required' }); return; }
+    if (!filePath) { res.status(400).json({ error: 'path query parameter is required' }); return; }
+
+    await FsService.deleteFile(projectId, filePath);
+    res.json({ success: true });
+  } catch (err) {
+    if (err instanceof Error && (err.message.includes('not running') || err.message.includes('No running container'))) {
+      res.status(404).json({ error: err.message }); return;
+    }
+    next(err);
+  }
+});
+
+/**
+ * PATCH /api/workspace/:projectId/files
+ * Renames a file or directory.
+ * Body: { oldPath: string, newPath: string }
+ * Response: { success: true }
+ */
+router.patch('/:projectId/files', async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const { oldPath, newPath } = req.body as { oldPath?: string; newPath?: string };
+
+    if (!projectId) { res.status(400).json({ error: 'projectId is required' }); return; }
+    if (!oldPath || !newPath) { res.status(400).json({ error: 'oldPath and newPath are required in request body' }); return; }
+
+    await FsService.renameFile(projectId, oldPath, newPath);
+    res.json({ success: true, oldPath, newPath });
+  } catch (err) {
+    if (err instanceof Error && (err.message.includes('not running') || err.message.includes('No running container'))) {
+      res.status(404).json({ error: err.message }); return;
+    }
+    next(err);
+  }
+});
+
 export default router;

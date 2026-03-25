@@ -257,4 +257,56 @@ export class FsService {
       });
     });
   }
+
+  /**
+   * Deletes a file or directory inside the container via `rm -rf`.
+   */
+  static async deleteFile(projectId: string, filePath: string): Promise<void> {
+    const container = await FsService.getContainer(projectId);
+    const safePath = filePath.replace(/\.\.\//g, '').replace(/^\/+/, '');
+    const absolutePath = `/workspace/${safePath}`;
+
+    // Protect against deleting the root workspace
+    if (absolutePath === '/workspace' || absolutePath === '/workspace/') {
+      throw new Error('Cannot delete the root workspace folder.');
+    }
+
+    const { stderr } = await execInContainer(container, [
+      'sh', '-c', `rm -rf "${absolutePath}"`,
+    ]);
+
+    if (stderr?.trim()) {
+      throw new Error(`Failed to delete file: ${stderr.trim()}`);
+    }
+  }
+
+  /**
+   * Renames a file or directory inside the container via `mv`.
+   */
+  static async renameFile(projectId: string, oldPath: string, newPath: string): Promise<void> {
+    const container = await FsService.getContainer(projectId);
+    
+    const safeOldPath = oldPath.replace(/\.\.\//g, '').replace(/^\/+/, '');
+    const absoluteOldPath = `/workspace/${safeOldPath}`;
+    
+    const safeNewPath = newPath.replace(/\.\.\//g, '').replace(/^\/+/, '');
+    const absoluteNewPath = `/workspace/${safeNewPath}`;
+
+    if (absoluteOldPath === '/workspace' || absoluteOldPath === '/workspace/') {
+      throw new Error('Cannot rename the root workspace folder.');
+    }
+
+    // Ensure the parent directory of the new path exists
+    await execInContainer(container, [
+      'sh', '-c', `mkdir -p "$(dirname "${absoluteNewPath}")"`,
+    ]);
+
+    const { stderr } = await execInContainer(container, [
+      'sh', '-c', `mv "${absoluteOldPath}" "${absoluteNewPath}"`,
+    ]);
+
+    if (stderr?.trim()) {
+      throw new Error(`Failed to rename file: ${stderr.trim()}`);
+    }
+  }
 }

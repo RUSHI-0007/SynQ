@@ -332,15 +332,28 @@ router.post('/:id/invite', async (req, res, next) => {
     const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY || '' });
 
     const usersResult = await clerk.users.getUserList({ emailAddress: [email.toLowerCase().trim()] });
+    
+    // If the user doesn't exist in Clerk yet, send them a B2C email invitation to join the app
     if (!usersResult.data || usersResult.data.length === 0) {
-      res.status(404).json({ error: 'No user found with that email. Make sure they have signed up for SYNQ first.' });
-      return;
+      try {
+        await clerk.invitations.createInvitation({
+          emailAddress: email.toLowerCase().trim(),
+          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/join/${id}`,
+          ignoreExisting: true,
+        });
+        res.json({ success: true, name: email, userId: 'pending' });
+        return;
+      } catch (invErr: any) {
+        console.warn('[Clerk] Failed to send email invitation:', invErr);
+        res.status(500).json({ error: 'Failed to send invitation email via Clerk' });
+        return;
+      }
     }
 
     const invitedUser = usersResult.data[0];
 
     if (!invitedUser) {
-      res.status(404).json({ error: 'No user found with that email. Make sure they have signed up for SYNQ first.' });
+      res.status(404).json({ error: 'Failed to resolve user' });
       return;
     }
 

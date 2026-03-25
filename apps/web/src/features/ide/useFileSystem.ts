@@ -14,6 +14,9 @@ export interface UseFileSystemReturn {
   treeLoading: boolean;
   error: string | null;
   setEditorRef: (editor: monaco.editor.IStandaloneCodeEditor | null) => void;
+  createFile: (path: string) => Promise<void>;
+  deleteFile: (path: string) => Promise<void>;
+  renameFile: (oldPath: string, newPath: string) => Promise<void>;
 }
 
 export function useFileSystem(projectId: string): UseFileSystemReturn {
@@ -107,6 +110,35 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
     }
   }, [projectId, activeFile, getToken]);
 
+  const createFile = useCallback(async (path: string) => {
+    const token = await getToken();
+    const res = await fetch(getApiUrl(`api/workspace/${projectId}/files`), {
+      method: 'POST',
+      headers: { ...getApiHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+    });
+    if (!res.ok) throw new Error('Failed to create file');
+  }, [projectId, getToken]);
+
+  const deleteFile = useCallback(async (path: string) => {
+    const token = await getToken();
+    const res = await fetch(getApiUrl(`api/workspace/${projectId}/files?path=${encodeURIComponent(path)}`), {
+      method: 'DELETE',
+      headers: getApiHeaders(token),
+    });
+    if (!res.ok) throw new Error('Failed to delete file');
+  }, [projectId, getToken]);
+
+  const renameFile = useCallback(async (oldPath: string, newPath: string) => {
+    const token = await getToken();
+    const res = await fetch(getApiUrl(`api/workspace/${projectId}/files`), {
+      method: 'PATCH',
+      headers: { ...getApiHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPath, newPath }),
+    });
+    if (!res.ok) throw new Error('Failed to rename file');
+  }, [projectId, getToken]);
+
   return {
     tree,
     activeFile,
@@ -117,5 +149,8 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
     treeLoading,
     error,
     setEditorRef,
+    createFile,
+    deleteFile,
+    renameFile,
   };
 }
