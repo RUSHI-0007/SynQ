@@ -170,7 +170,22 @@ export const FloatingTerminal: React.FC<FloatingTerminalProps> = ({ projectId, i
       `}} />
       
       <div 
-        className="w-full h-full flex flex-col bg-transparent overflow-hidden"
+        className={`absolute z-30 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          !isVisible 
+            ? 'bottom-2 right-2 md:bottom-6 md:right-6 w-auto h-auto opacity-100 scale-100 translate-y-0 rounded-full cursor-pointer hover:scale-105 active:scale-95 shadow-[0_8px_30px_rgb(0,0,0,0.5)]'
+            : isMaximized 
+              ? 'inset-2 md:inset-4 md:left-[304px] lg:inset-6 lg:left-[344px] w-auto h-auto opacity-100 scale-100 translate-y-0 bg-[#0a0a0c]/80 backdrop-blur-3xl border border-white/10 rounded-xl shadow-2xl flex flex-col' 
+              : 'bottom-2 right-2 md:bottom-6 md:right-6 w-[calc(100vw-1rem)] md:w-[550px] h-[300px] md:h-[360px] max-w-full opacity-100 scale-100 translate-y-0 bg-[#0a0a0c]/80 backdrop-blur-3xl border border-white/10 rounded-xl shadow-2xl flex flex-col'
+        }`}
+        onClick={() => {
+          if (!isVisible && onClose) {
+             // We hijack onClose to act as a toggle from the parent state
+             // But actually, the parent passes onClose={() => setIsTerminalVisible(false)}
+             // Wait, if it's minimized, we need to tell the parent to SHOW it.
+             // We'll dispatch a custom event since we don't have an onOpen prop, or just use the existing inject event trick.
+             window.dispatchEvent(new CustomEvent('inject-terminal-command', { detail: '' }));
+          }
+        }}
       >
         {/* Minimized Pill View */}
         {!isVisible && (
