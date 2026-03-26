@@ -404,7 +404,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
         <Group orientation="horizontal" id="workspace-layout" className="min-w-0 flex-1">
           {activePanel && (
             <>
-              <Panel defaultSize={18} minSize={12} maxSize={30} className="sidebar flex flex-col min-h-0 bg-[#0a0a0c] border-r border-[#1a1b20]">
+              <Panel defaultSize="18%" minSize="12%" maxSize="30%" className="sidebar flex flex-col min-h-0 bg-[#0a0a0c] border-r border-[#1a1b20]">
           {activePanel === 'explorer' && (
             <>
               <div className="sb-head shrink-0 flex items-center justify-between group">
@@ -577,7 +577,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
           {/* EDITOR AREA */}
           <Panel className="editor-area min-w-0 flex-1 relative bg-[#050505] flex flex-col">
             <Group orientation="vertical" id="editor-terminal-layout">
-              <Panel defaultSize={75} minSize={20} className="flex flex-col min-h-0 relative">
+              <Panel defaultSize="75%" minSize="20%" className="flex flex-col min-h-0 relative">
                 {/* TAB BAR */}
                 <div className="tab-bar shrink-0">
             {openTabs.map(f => {
@@ -671,7 +671,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
               {isTerminalVisible && (
                 <>
                   <Separator className="h-[1px] bg-[#1a1b20] hover:bg-indigo-500 transition-colors cursor-row-resize active:bg-indigo-500 z-10" />
-                  <Panel defaultSize={25} minSize={10} className="relative z-10 bg-[#0a0a0c]">
+                  <Panel defaultSize="25%" minSize="10%" className="relative z-10 bg-[#0a0a0c]">
                      <FloatingTerminal projectId={params.id} isVisible={true} onClose={() => setIsTerminalVisible(false)} />
                   </Panel>
                 </>
@@ -683,7 +683,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
           {aiOpen && (
             <>
               <Separator className="w-[1px] bg-[#1a1b20] hover:bg-indigo-500 transition-colors cursor-col-resize active:bg-indigo-500 flex-shrink-0 z-10" />
-              <Panel defaultSize={22} minSize={15} maxSize={40} className="ai-panel flex flex-col bg-[#050505]">
+              <Panel defaultSize="22%" minSize="15%" maxSize="40%" className="ai-panel flex flex-col bg-[#050505]">
           <div className="ai-ph flex items-center justify-between">
             <div className="ai-title flex items-center">
               <div className="ai-dot"></div>
