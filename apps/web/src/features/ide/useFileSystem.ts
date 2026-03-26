@@ -71,6 +71,13 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
 
   // ─── Open a file: fetch content + switch Yjs collaboration room ────────
   const openFile = useCallback(async (path: string) => {
+    // Empty path = clear the editor (called when all tabs are closed)
+    if (!path) {
+      setActiveFile(null);
+      setActiveContent('// Select a file from the sidebar to start editing.');
+      setRoomId(projectId);
+      return;
+    }
     if (path === activeFile) return;
     setLoading(true);
     setError(null);
