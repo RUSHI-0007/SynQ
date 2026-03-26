@@ -9,6 +9,7 @@ import { useConsensus } from "@/features/merge/useConsensus";
 import { VoiceRoom } from "@/features/voice/VoiceRoom";
 import { InviteButton } from "@/features/projects/InviteButton";
 import { FileNode } from "@hackathon/shared-types";
+import { Panel, Group, Separator } from "react-resizable-panels";
 import "@/app/redesign/redesign.css";
 
 // Dynamic imports for browser-only APIs
@@ -50,7 +51,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
   const userName = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username || 'Anonymous';
   const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || '';
 
-  const { tree, activeFile, activeContent, openFile, loading, treeLoading, createFile, deleteFile, renameFile } = useFileSystem(params.id);
+  const { tree, activeFile, activeContent, openFile, loading, treeLoading, createFile, deleteFile, renameFile, error } = useFileSystem(params.id);
   const { teammates } = useTeammates(params.id);
   const { proposeMerge, loading: isProposing } = useConsensus(params.id);
 
@@ -111,6 +112,12 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 3000);
   };
+
+  useEffect(() => {
+    if (error) {
+       showToast(`FS Error: ${error}`);
+    }
+  }, [error]);
 
   const handleProposeMerge = async () => {
     if (!user || !activeFile) {
@@ -393,8 +400,11 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
           </button>
         </div>
 
-        {/* SIDEBAR */}
-        <aside className="sidebar shrink-0 flex flex-col min-h-0" style={{ display: activePanel ? "flex" : "none" }}>
+        {/* WORKSPACE PANELS */}
+        <Group orientation="horizontal" id="workspace-layout" className="min-w-0 flex-1">
+          {activePanel && (
+            <>
+              <Panel defaultSize={18} minSize={12} maxSize={30} className="sidebar flex flex-col min-h-0 bg-[#0a0a0c] border-r border-[#1a1b20]">
           {activePanel === 'explorer' && (
             <>
               <div className="sb-head shrink-0 flex items-center justify-between group">
@@ -559,12 +569,17 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
               </div>
             </div>
           )}
-        </aside>
+              </Panel>
+              <Separator className="w-[1px] bg-transparent hover:bg-indigo-500 transition-colors cursor-col-resize active:bg-indigo-500 flex-shrink-0 z-10" />
+            </>
+          )}
 
-        {/* EDITOR AREA */}
-        <main className="editor-area min-w-0 flex-1 relative bg-[#050505]">
-          {/* TAB BAR */}
-          <div className="tab-bar shrink-0">
+          {/* EDITOR AREA */}
+          <Panel className="editor-area min-w-0 flex-1 relative bg-[#050505] flex flex-col">
+            <Group orientation="vertical" id="editor-terminal-layout">
+              <Panel defaultSize={75} minSize={20} className="flex flex-col min-h-0 relative">
+                {/* TAB BAR */}
+                <div className="tab-bar shrink-0">
             {openTabs.map(f => {
               const name = f.split('/').pop() || f;
               const isActive = f === activeFile;
@@ -650,17 +665,38 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
               </div>
             </div>
           </div>
+              </Panel>
           
-          {/* Real Floating Terminal integrated here */}
-          <FloatingTerminal 
-            projectId={params.id} 
-            isVisible={isTerminalVisible}
-            onClose={() => setIsTerminalVisible(false)}
-          />
-        </main>
+              {/* DOCKED TERMINAL */}
+              {isTerminalVisible && (
+                <>
+                  <Separator className="h-[1px] bg-[#1a1b20] hover:bg-indigo-500 transition-colors cursor-row-resize active:bg-indigo-500 z-10" />
+                  <Panel defaultSize={25} minSize={10} className="relative z-10 bg-[#0d1117]">
+                     <div className="h-full w-full relative flex flex-col">
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-[#0a0a0c] border-b border-[#1a1b20] shrink-0 select-none">
+                           <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></svg>
+                             Terminal
+                           </div>
+                           <button className="text-zinc-500 hover:text-white transition-colors" onClick={() => setIsTerminalVisible(false)}>
+                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                           </button>
+                        </div>
+                        <div className="flex-1 relative min-h-0">
+                           <FloatingTerminal projectId={params.id} isVisible={true} onClose={() => {}} />
+                        </div>
+                     </div>
+                  </Panel>
+                </>
+              )}
+            </Group>
+          </Panel>
 
-        {/* AI PANEL */}
-        <aside className={`ai-panel shrink-0 ${aiOpen ? 'flex' : 'hidden'} flex-col`}>
+          {/* AI PANEL */}
+          {aiOpen && (
+            <>
+              <Separator className="w-[1px] bg-[#1a1b20] hover:bg-indigo-500 transition-colors cursor-col-resize active:bg-indigo-500 flex-shrink-0 z-10" />
+              <Panel defaultSize={22} minSize={15} maxSize={40} className="ai-panel flex flex-col bg-[#050505]">
           <div className="ai-ph flex items-center justify-between">
             <div className="ai-title flex items-center">
               <div className="ai-dot"></div>
@@ -740,7 +776,10 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
               </div>
             </div>
           </div>
-        </aside>
+              </Panel>
+            </>
+          )}
+        </Group>
       </div>
 
       <MergeModal 
