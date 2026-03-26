@@ -671,21 +671,8 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
               {isTerminalVisible && (
                 <>
                   <Separator className="h-[1px] bg-[#1a1b20] hover:bg-indigo-500 transition-colors cursor-row-resize active:bg-indigo-500 z-10" />
-                  <Panel defaultSize={25} minSize={10} className="relative z-10 bg-[#0d1117]">
-                     <div className="h-full w-full relative flex flex-col">
-                        <div className="flex items-center justify-between px-3 py-1.5 bg-[#0a0a0c] border-b border-[#1a1b20] shrink-0 select-none">
-                           <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></svg>
-                             Terminal
-                           </div>
-                           <button className="text-zinc-500 hover:text-white transition-colors" onClick={() => setIsTerminalVisible(false)}>
-                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                           </button>
-                        </div>
-                        <div className="flex-1 relative min-h-0">
-                           <FloatingTerminal projectId={params.id} isVisible={true} onClose={() => {}} />
-                        </div>
-                     </div>
+                  <Panel defaultSize={25} minSize={10} className="relative z-10 bg-[#0a0a0c]">
+                     <FloatingTerminal projectId={params.id} isVisible={true} onClose={() => setIsTerminalVisible(false)} />
                   </Panel>
                 </>
               )}

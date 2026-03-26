@@ -90,7 +90,7 @@ button {cursor:pointer;font-family:var(--font-ui)}
 .rail-btn.crown:hover{background:rgba(245,158,11,.1)}
 
 /* === SIDEBAR === */
-.sidebar{width:240px;background:var(--bg-deep);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar{background:var(--bg-deep);display:flex;flex-direction:column;overflow:hidden}
 .sb-head{display:flex;align-items:center;justify-content:space-between;padding:11px 14px 7px;color:var(--text-3);font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase}
 .sb-search{background:transparent;border:none;color:var(--text-3);padding:4px;border-radius:4px;transition:all .15s;display:flex;align-items:center;justify-content:center}
 .sb-search:hover{color:var(--text-1);background:var(--bg-hover)}
@@ -110,7 +110,7 @@ button {cursor:pointer;font-family:var(--font-ui)}
 .tc.open{display:block}
 
 /* === EDITOR AREA === */
-.editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-root)}
+.editor-area{display:flex;flex-direction:column;overflow:hidden;background:var(--bg-root)}
 
 /* TAB BAR */
 .tab-bar{display:flex;align-items:center;background:var(--bg-deep);border-bottom:1px solid var(--border);height:38px;overflow-x:auto;overflow-y:hidden;flex-shrink:0}
