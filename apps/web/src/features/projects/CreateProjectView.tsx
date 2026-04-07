@@ -451,7 +451,7 @@ export function CreateProjectView({ onBack }: CreateProjectViewProps) {
                   onChange={(e) => setName(e.target.value)}
                   disabled={isSubmitting}
                   onKeyDown={(e) => e.key === 'Enter' && name.trim() && handleDeploy()}
-                  className="w-full bg-black/50 border border-white/[0.08] focus:border-white/25 rounded-xl px-4 py-3 text-white font-mono placeholder:text-neutral-500 outline-none transition-all text-base"
+                  className="w-full bg-[#0d0d14] border border-white/[0.08] focus:border-white/25 rounded-xl px-4 py-3 text-white font-mono placeholder:text-neutral-500 outline-none transition-all text-base"
                   placeholder="e.g. hackathon-alpha"
                   autoFocus
                 />
