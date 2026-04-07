@@ -1,4 +1,21 @@
+'use client';
+
+import { useRef } from 'react';
+
 export function BentoSection() {
+  const cardsRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardsRef.current) return;
+    for (const card of Array.from(cardsRef.current.children) as HTMLElement[]) {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--mouse-x', `${x}px`);
+      card.style.setProperty('--mouse-y', `${y}px`);
+    }
+  };
+
   return (
     <section id="capabilities" className="relative w-full max-w-7xl mx-auto px-6 py-32 flex flex-col items-center z-10">
       <div className="aos text-[#6366f1] text-xs font-semibold tracking-[0.2em] mb-6 inline-flex items-center gap-2">
@@ -13,12 +30,16 @@ export function BentoSection() {
       </p>
 
       {/* Grid */}
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[minmax(18rem,auto)]">
+      <div 
+        ref={cardsRef}
+        onMouseMove={handleMouseMove}
+        className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[minmax(18rem,auto)]"
+      >
         
         {/* Col 1: Rows 1-2 (Yjs) */}
         <div className="aos flex flex-col justify-start rounded-3xl border border-white/[0.08] bg-[#0c0a1c]/80 p-8 shadow-2xl relative overflow-hidden group md:col-span-1 md:row-span-2 transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(99,102,241,0.3)] hover:border-white/20">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_20%,rgba(99,102,241,0.18)_0%,transparent_65%)] pointer-events-none" />
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 bg-[radial-gradient(circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),rgba(255,255,255,0.06)_0%,transparent_50%))] pointer-events-none" />
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 bg-[radial-gradient(circle_at_var(--mouse-x)_var(--mouse-y),rgba(255,255,255,0.06)_0px,transparent_300px)] pointer-events-none" />
           
           <div className="relative z-10 flex flex-col h-full">
             <span className="font-mono text-4xl font-bold text-white mb-6 tracking-tighter">Yjs</span>

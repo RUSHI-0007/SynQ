@@ -7,7 +7,16 @@ export interface ContainerConfig {
   workspacePath: string;
 }
 
-export type FrameworkTemplate = 'NEXTJS_TAILWIND' | 'PYTHON_FASTAPI' | 'VANILLA_VITE';
+export type FrameworkTemplate =
+  | 'NEXTJS_TAILWIND'
+  | 'PYTHON_FASTAPI'
+  | 'VANILLA_VITE'
+  | 'CPP_CMAKE'
+  | 'RUST_CARGO'
+  | 'GO_MODULE'
+  | 'C_MAKE'
+  | 'NODE_BLANK'
+  | 'PYTHON_BLANK';
 
 export interface BoilerplateTemplate {
   id: FrameworkTemplate;

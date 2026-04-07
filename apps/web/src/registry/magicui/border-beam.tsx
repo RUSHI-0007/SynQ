@@ -1,0 +1,2 @@
+// Re-export from canonical location
+export { BorderBeam } from "@/components/ui/border-beam";

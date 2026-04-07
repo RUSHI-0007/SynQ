@@ -5,10 +5,18 @@ import { supabase } from '../lib/supabase';
 
 const docker = new Docker();
 
-const TEMPLATE_REPOS: Record<FrameworkTemplate, string> = {
+const TEMPLATE_REPOS: Record<FrameworkTemplate, string | null> = {
   NEXTJS_TAILWIND: 'https://github.com/vercel/nextjs-portfolio-starter.git',
-  PYTHON_FASTAPI: 'https://github.com/tiangolo/fastapi-template.git',
-  VANILLA_VITE: 'https://github.com/vitejs/vite.git',
+  PYTHON_FASTAPI:  'https://github.com/tiangolo/fastapi-template.git',
+  VANILLA_VITE:    'https://github.com/vitejs/vite.git',
+  // Systems tier — clone from curated starter repos
+  CPP_CMAKE:       'https://github.com/cpp-best-practices/cmake_template.git',
+  RUST_CARGO:      'https://github.com/rust-unofficial/awesome-rust.git',
+  GO_MODULE:       'https://github.com/golang-standards/project-layout.git',
+  C_MAKE:          'https://github.com/clibs/clib.git',
+  // Blank environments — no clone, just the runtime image
+  NODE_BLANK:      null,
+  PYTHON_BLANK:    null,
 };
 
 export class ContainerService {
@@ -19,8 +27,19 @@ export class ContainerService {
     templateId: FrameworkTemplate,
     projectId: string
   ): Promise<ContainerConfig> {
-    const isPython = templateId === 'PYTHON_FASTAPI';
-    const image = isPython ? 'python:3.11-alpine' : 'node:20-alpine';
+    // Determine Docker image based on template
+    const imageMap: Record<FrameworkTemplate, string> = {
+      NEXTJS_TAILWIND: 'node:20-alpine',
+      PYTHON_FASTAPI:  'python:3.11-alpine',
+      VANILLA_VITE:    'node:20-alpine',
+      CPP_CMAKE:       'gcc:13-bookworm',
+      RUST_CARGO:      'rust:1.78-alpine',
+      GO_MODULE:       'golang:1.22-alpine',
+      C_MAKE:          'gcc:13-bookworm',
+      NODE_BLANK:      'node:20-alpine',
+      PYTHON_BLANK:    'python:3.11-alpine',
+    };
+    const image = imageMap[templateId] ?? 'node:20-alpine';
     
     // Crucial M1 Silicon constraint for cross-architecture stability
     const platform = process.arch === 'arm64' ? 'linux/arm64' : 'linux/amd64';
@@ -66,35 +85,32 @@ export class ContainerService {
       console.log(`[Scaffolder] Found existing backup for ${projectId}. Restoring from Supabase...`);
       await ContainerService.restoreWorkspace(projectId, container);
     } else {
-      console.log(`[Scaffolder] No backup found. Executing git clone...`);
-      
-      // We must install git first if it's an alpine image missing it, then clone
-      const repoUrl = TEMPLATE_REPOS[templateId] || TEMPLATE_REPOS.NEXTJS_TAILWIND;
-      
-      // Combine alpine package install, clone, and git directory removal.
-      // Skip npm install to prevent terminal timeouts.
-      const execCmd = [
-        'sh', '-c',
-        `apk add --no-cache git && git clone ${repoUrl} . && rm -rf .git`
-      ];
+      const repoUrl = TEMPLATE_REPOS[templateId];
 
-      const exec = await container.exec({
-        Cmd: execCmd,
-        AttachStdout: true,
-        AttachStderr: true,
-      });
+      if (repoUrl) {
+        console.log(`[Scaffolder] No backup found. Executing git clone from ${repoUrl}...`);
 
-      const execStream = await exec.start({ Detach: false });
-      
-      // Pipe output to the server console to ensure stream drains before completion
-      execStream.pipe(process.stdout);
+        // Detect package manager: alpine images use apk, debian/ubuntu images use apt-get
+        const isAlpine = image.includes('alpine');
+        const gitInstall = isAlpine
+          ? 'apk add --no-cache git'
+          : 'apt-get update -qq && apt-get install -y -qq git';
 
-      await new Promise<void>((resolve, reject) => {
-        execStream.on('end', resolve);
-        execStream.on('error', reject);
-      });
+        const execCmd = ['sh', '-c', `${gitInstall} && git clone ${repoUrl} . && rm -rf .git`];
 
-      console.log(`[Scaffolder] Git clone completed for ${projectId}.`);
+        const exec = await container.exec({ Cmd: execCmd, AttachStdout: true, AttachStderr: true });
+        const execStream = await exec.start({ Detach: false });
+        execStream.pipe(process.stdout);
+
+        await new Promise<void>((resolve, reject) => {
+          execStream.on('end', resolve);
+          execStream.on('error', reject);
+        });
+
+        console.log(`[Scaffolder] Git clone completed for ${projectId}.`);
+      } else {
+        console.log(`[Scaffolder] Blank environment — no clone needed for ${templateId}.`);
+      }
     }
 
     // Update DB status to active so dashboard knows it's alive
