@@ -61,14 +61,13 @@ export function BorderBeam({
           className,
         )}
         style={
-          {
+          ({
             width: size,
             offsetPath: `rect(0 auto auto 0 round calc(var(--border-width) * 1px))`,
             "--color-from": colorFrom,
             "--color-to": colorTo,
             ...style,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any
+          }) as any
         }
         initial={{ offsetDistance: `${initialOffset}%` }}
         animate={{ offsetDistance: reverse ? ["100%", "0%"] : ["0%", "100%"] }}

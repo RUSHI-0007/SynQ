@@ -22,7 +22,7 @@ export default function AboutPage() {
 
       <h2 id="our-mission" className="text-2xl font-bold text-white mt-12 mb-4 scroll-m-20">Our Mission</h2>
       <p>
-        The way teams write code during fast-paced events like hackathons has remained stagnant. Constant merge conflicts, broken environments, and "it works on my machine" excuses are the norm. SYNQ is here to eliminate that friction entirely by providing a unified sandbox where every teammate can collaborate, compile, and execute code simultaneously.
+        The way teams write code during fast-paced events like hackathons has remained stagnant. Constant merge conflicts, broken environments, and &quot;it works on my machine&quot; excuses are the norm. SYNQ is here to eliminate that friction entirely by providing a unified sandbox where every teammate can collaborate, compile, and execute code simultaneously.
       </p>
 
       <h2 id="the-technology" className="text-2xl font-bold text-white mt-12 mb-4 scroll-m-20">The Technology</h2>

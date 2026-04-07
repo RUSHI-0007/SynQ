@@ -22,7 +22,7 @@ export default function LegalPage() {
 
       <h2 id="1-terms-of-service" className="text-xl font-bold text-white mt-12 mb-4 scroll-m-20">1. Terms of Service</h2>
       <p>
-        Welcome to SYNQ ("we," "our," "us"). By accessing or using our multiplayer IDE and related services, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use SYNQ. You must be at least 13 years old to use our Service. You are responsible for all activities that occur under your account and for maintaining the confidentiality of your credentials.
+        Welcome to SYNQ (&quot;we,&quot; &quot;our,&quot; &quot;us&quot;). By accessing or using our multiplayer IDE and related services, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use SYNQ. You must be at least 13 years old to use our Service. You are responsible for all activities that occur under your account and for maintaining the confidentiality of your credentials.
       </p>
 
       <h2 id="2-user-content-and-code" className="text-xl font-bold text-white mt-12 mb-4 scroll-m-20">2. User Content and Code</h2>
@@ -40,7 +40,7 @@ export default function LegalPage() {
 
       <h2 id="4-limitation-of-liability" className="text-xl font-bold text-white mt-12 mb-4 scroll-m-20">4. Limitation of Liability</h2>
       <p>
-        SYNQ is provided "as is" without any warranties, express or implied. In no event shall SYNQ Systems, Inc., its directors, employees, or partners be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.
+        SYNQ is provided &quot;as is&quot; without any warranties, express or implied. In no event shall SYNQ Systems, Inc., its directors, employees, or partners be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.
       </p>
 
       <h2 id="5-contact-us" className="text-xl font-bold text-white mt-12 mb-4 scroll-m-20">5. Contact Us</h2>
