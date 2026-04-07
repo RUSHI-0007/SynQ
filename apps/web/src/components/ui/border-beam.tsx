@@ -21,8 +21,10 @@ interface BorderBeamProps {
   colorFrom?: string;
   /** Ending color of the beam gradient */
   colorTo?: string;
-  /** Custom Tailwind className — use `from-transparent via-color to-transparent` pattern */
+  /** Custom Tailwind className — applied to the beam element itself */
   className?: string;
+  /** Custom Tailwind className — applied to the outer wrapper div (for opacity transitions etc) */
+  wrapperClassName?: string;
   /** Inline styles */
   style?: CSSProperties;
   /** Animate in reverse direction */
@@ -41,6 +43,7 @@ export function BorderBeam({
   colorFrom = "#ffaa40",
   colorTo = "#9c40ff",
   className,
+  wrapperClassName,
   style,
   reverse = false,
   initialOffset = 0,
@@ -48,7 +51,10 @@ export function BorderBeam({
 }: BorderBeamProps) {
   return (
     <div
-      className="pointer-events-none absolute inset-0 rounded-[inherit] [border:calc(var(--border-width)*1px)_solid_transparent] ![mask-clip:padding-box,border-box] ![mask-composite:intersect] [mask:linear-gradient(transparent,transparent),linear-gradient(white,white)]"
+      className={cn(
+        "pointer-events-none absolute inset-0 rounded-[inherit] [border:calc(var(--border-width)*1px)_solid_transparent] ![mask-clip:padding-box,border-box] ![mask-composite:intersect] [mask:linear-gradient(transparent,transparent),linear-gradient(white,white)]",
+        wrapperClassName,
+      )}
       style={
         {
           "--border-width": borderWidth,

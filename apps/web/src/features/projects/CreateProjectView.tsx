@@ -318,15 +318,14 @@ export function CreateProjectView({ onBack }: CreateProjectViewProps) {
               style={isSelected ? { boxShadow: `0 0 35px ${tier.glowColor}` } : {}}
             >
               {/* Beam */}
-              <div className={`transition-opacity duration-500 ${isSelected ? 'opacity-100' : 'opacity-30 group-hover:opacity-70'}`}>
-                <BorderBeam
-                  duration={isSelected ? 4 : 9}
-                  size={110}
-                  borderWidth={1.5}
-                  colorFrom={tier.colorFrom}
-                  colorTo={tier.colorTo}
-                />
-              </div>
+              <BorderBeam
+                duration={isSelected ? 4 : 9}
+                size={90}
+                borderWidth={1.5}
+                colorFrom={tier.colorFrom}
+                colorTo={tier.colorTo}
+                wrapperClassName={`transition-opacity duration-500 ${isSelected ? 'opacity-100' : 'opacity-30 group-hover:opacity-70'}`}
+              />
 
               {/* Card glow bg */}
               <div
@@ -393,15 +392,14 @@ export function CreateProjectView({ onBack }: CreateProjectViewProps) {
               }}
             >
               {/* Beam */}
-              <div className={`transition-opacity duration-500 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}>
-                <BorderBeam
-                  duration={isSelected ? 5 : 10}
-                  size={60}
-                  borderWidth={1}
-                  colorFrom={opt.colorFrom}
-                  colorTo={opt.colorTo}
-                />
-              </div>
+              <BorderBeam
+                duration={isSelected ? 5 : 10}
+                size={50}
+                borderWidth={1}
+                colorFrom={opt.colorFrom}
+                colorTo={opt.colorTo}
+                wrapperClassName={`transition-opacity duration-500 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}
+              />
 
               <div
                 className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -433,7 +431,7 @@ export function CreateProjectView({ onBack }: CreateProjectViewProps) {
               style={{ boxShadow: `0 -16px 48px rgba(0,0,0,0.6), 0 0 24px ${selectedColorFrom}22` }}
             >
               {/* Selected tier label */}
-              <div className="flex items-center gap-3 flex-shrink-0 hidden md:flex">
+              <div className="flex items-center gap-3 flex-shrink-0">
                 <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: selectedColorFrom }} />
                 <span className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">
                   {selectedTitle}
@@ -453,7 +451,7 @@ export function CreateProjectView({ onBack }: CreateProjectViewProps) {
                   onChange={(e) => setName(e.target.value)}
                   disabled={isSubmitting}
                   onKeyDown={(e) => e.key === 'Enter' && name.trim() && handleDeploy()}
-                  className="w-full bg-black/50 border border-white/[0.08] focus:border-white/25 rounded-xl px-4 py-3 text-white font-mono placeholder:text-neutral-700 outline-none transition-all text-base"
+                  className="w-full bg-black/50 border border-white/[0.08] focus:border-white/25 rounded-xl px-4 py-3 text-white font-mono placeholder:text-neutral-500 outline-none transition-all text-base"
                   placeholder="e.g. hackathon-alpha"
                   autoFocus
                 />
