@@ -7,6 +7,34 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ─────────────────────────────────────────────────────────────
+-- Table: projects
+-- One row = one scaffolded user project/sandbox
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS projects (
+  id              TEXT          PRIMARY KEY,    -- UUID or generated ID
+  name            TEXT          NOT NULL,
+  status          TEXT          NOT NULL DEFAULT 'active'
+                    CHECK (status IN ('active', 'archived', 'failed')),
+  ownerId         TEXT          NOT NULL,       -- Clerk user ID of owner
+  templateId      TEXT          NOT NULL,       -- e.g. REACT_VITE, PYTHON_BLANK
+  createdAt       TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  updatedAt       TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+-- Auto-update updatedAt on every row change
+CREATE OR REPLACE FUNCTION update_projects_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW."updatedAt" = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER projects_updated_at
+  BEFORE UPDATE ON projects
+  FOR EACH ROW EXECUTE FUNCTION update_projects_updated_at_column();
+
+-- ─────────────────────────────────────────────────────────────
 -- Table: merge_requests
 -- One row = one proposed merge for a project
 -- ─────────────────────────────────────────────────────────────

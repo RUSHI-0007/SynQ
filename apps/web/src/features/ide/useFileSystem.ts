@@ -37,37 +37,36 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
     editorRef.current = editor;
   }, []);
 
+  const fetchTree = useCallback(async (silent = false) => {
+    if (!projectId) return;
+    if (!silent) setTreeLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const res = await fetch(getApiUrl(`api/fs/${projectId}/tree`), {
+        headers: getApiHeaders(token),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(body.error || `Failed to fetch file tree (${res.status})`);
+      }
+      const data = await res.json();
+      setTree(data as FileNode[]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      if (!silent) setTreeLoading(false);
+    }
+  }, [projectId, getToken]);
+
   // ─── Fetch file tree on mount ──────────────────────────────────────────
   useEffect(() => {
-    if (!projectId) return;
+    fetchTree(false); // Initial load (not silent)
 
-    const fetchTree = async () => {
-      setTreeLoading(true);
-      setError(null);
-      try {
-        const token = await getToken();
-        const res = await fetch(getApiUrl(`api/fs/${projectId}/tree`), {
-          headers: getApiHeaders(token),
-        });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({ error: res.statusText }));
-          throw new Error(body.error || `Failed to fetch file tree (${res.status})`);
-        }
-        const data = await res.json();
-        setTree(data as FileNode[]);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setTreeLoading(false);
-      }
-    };
-
-    fetchTree();
-
-    // Poll the backend container every 5 seconds to simulate an auto-updating file tree watcher
-    const interval = setInterval(fetchTree, 5000);
+    // Poll the backend container every 5 seconds (silent refresh)
+    const interval = setInterval(() => fetchTree(true), 5000);
     return () => clearInterval(interval);
-  }, [projectId, getToken]);
+  }, [fetchTree]);
 
   // ─── Open a file: fetch content + switch Yjs collaboration room ────────
   const openFile = useCallback(async (path: string) => {
@@ -125,7 +124,8 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
       body: JSON.stringify({ path }),
     });
     if (!res.ok) throw new Error('Failed to create file');
-  }, [projectId, getToken]);
+    await fetchTree(true);
+  }, [projectId, getToken, fetchTree]);
 
   const deleteFile = useCallback(async (path: string) => {
     const token = await getToken();
@@ -134,7 +134,8 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
       headers: getApiHeaders(token),
     });
     if (!res.ok) throw new Error('Failed to delete file');
-  }, [projectId, getToken]);
+    await fetchTree(true);
+  }, [projectId, getToken, fetchTree]);
 
   const renameFile = useCallback(async (oldPath: string, newPath: string) => {
     const token = await getToken();
@@ -144,7 +145,8 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
       body: JSON.stringify({ oldPath, newPath }),
     });
     if (!res.ok) throw new Error('Failed to rename file');
-  }, [projectId, getToken]);
+    await fetchTree(true);
+  }, [projectId, getToken, fetchTree]);
 
   return {
     tree,

@@ -32,6 +32,7 @@ function getIconBg(filename: string) {
   if(filename.endsWith('.json')) return '#8b0000';
   if(filename.endsWith('.css')) return '#264de4';
   if(filename.endsWith('.md')) return '#555';
+  if(filename.endsWith('.py')) return '#3776AB';
   return '#444';
 }
 
@@ -42,6 +43,7 @@ function getIconChars(filename: string) {
   if(filename.endsWith('.json')) return '{}';
   if(filename.endsWith('.css')) return 'CSS';
   if(filename.endsWith('.md')) return 'MD';
+  if(filename.endsWith('.py')) return 'PY';
   return '◌';
 }
 
@@ -132,6 +134,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
       if (fullPath) {
         try {
           await createFile(fullPath);
+          await openFile(fullPath);
           showToast("Created successfully");
         } catch(err: any) {
           showToast(err.message || 'Creation failed');
