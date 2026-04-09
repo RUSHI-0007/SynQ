@@ -141,6 +141,12 @@ router.post('/scaffold', async (req, res, next) => {
     }
 
     const containerConfig = await ContainerService.createProjectContainer(templateId, projectId);
+
+    // Backfill previewUrl into the in-memory cache so GET /:id returns it immediately
+    if (containerConfig.previewUrl) {
+      projectCache.set(projectId, { ...newProject, previewUrl: containerConfig.previewUrl } as any);
+    }
+
     res.json({ project: newProject, container: containerConfig });
   } catch (error) {
     next(error);

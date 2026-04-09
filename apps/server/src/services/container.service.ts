@@ -497,14 +497,22 @@ export class ContainerService {
     });
 
     console.log(`[Scaffolder] Creating container…`);
+
+    // Pick a random ephemeral host port (30000–39999) for the container's app
+    const hostPort = Math.floor(Math.random() * 10000) + 30000;
+
     const container = await docker.createContainer({
       Image: image,
       Cmd: ['tail', '-f', '/dev/null'],
       name: `hackathon-project-${projectId}`,
       WorkingDir: '/workspace',
+      ExposedPorts: { '3000/tcp': {} },
       HostConfig: {
         AutoRemove: true,
         Binds: [`${hostVolumePath}:/workspace`],
+        PortBindings: {
+          '3000/tcp': [{ HostIp: '0.0.0.0', HostPort: String(hostPort) }],
+        },
       },
       platform,
     }) as Docker.Container;
@@ -528,10 +536,25 @@ export class ContainerService {
     // Mark project as active in DB
     await supabase.from('projects').update({ status: 'active' }).eq('id', projectId);
 
+    // Build the public preview URL:
+    // - In production: derive the host from NEXT_PUBLIC_API_URL (e.g. https://synq.example.com → synq.example.com:hostPort)
+    // - Locally: just localhost:hostPort
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const serverHost = new URL(apiBase).hostname;
+    const protocol = new URL(apiBase).protocol; // 'http:' or 'https:'
+    const previewUrl = `${protocol}//${serverHost}:${hostPort}`;
+
+    // Store previewUrl on the project record so any collaborator can load it
+    await supabase
+      .from('projects')
+      .update({ previewUrl })
+      .eq('id', projectId);
+
     return {
       projectId,
       containerId: container.id,
-      port: 3000,
+      port: hostPort,
+      previewUrl,
       status: 'running',
       platform,
       workspacePath: hostVolumePath,

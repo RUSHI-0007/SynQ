@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { useFileSystem } from "@/features/ide/useFileSystem";
 import { useTeammates } from "@/features/ide/useTeammates";
 import { useConsensus } from "@/features/merge/useConsensus";
@@ -49,8 +49,26 @@ function getIconChars(filename: string) {
 
 export default function WorkspacePage({ params }: { params: { id: string } }) {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const userName = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username || 'Anonymous';
   const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || '';
+
+  // Preview URL — fetched from the project record (set by the backend when scaffolding)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await getToken();
+        const { getApiUrl, getApiHeaders } = await import('@/lib/api-client');
+        const res = await fetch(getApiUrl(`api/projects/${params.id}`), { headers: getApiHeaders(token) });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.previewUrl) setPreviewUrl(data.previewUrl);
+        }
+      } catch { /* silent — preview just stays hidden */ }
+    })();
+  }, [params.id, getToken]);
 
   const { tree, activeFile, activeContent, openFile, loading, treeLoading, createFile, deleteFile, renameFile } = useFileSystem(params.id);
   const { teammates } = useTeammates(params.id);
@@ -642,16 +660,28 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
                     <div className="pv-dot" style={{ background: "#d29922" }}></div>
                     <div className="pv-dot" style={{ background: "#3fb950" }}></div>
                   </div>
-                  <div className="pv-url truncate text-xs mx-auto max-w-[200px] sm:max-w-md">https://{params.id}-app.synq.dev</div>
+                  <div className="pv-url truncate text-xs mx-auto max-w-[200px] sm:max-w-md font-mono text-zinc-400">
+                    {previewUrl || 'waiting for preview server...'}
+                  </div>
                   <button className="text-zinc-400 hover:text-white" onClick={() => showToast('Refreshed')}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" /></svg>
                   </button>
                 </div>
-                <div className="pv-frame flex-1 bg-zinc-900 border border-t-0 p-4 border-white/5 overflow-auto relative">
-                   <div className="absolute inset-0 flex items-center justify-center text-zinc-700 font-mono text-sm tracking-wider uppercase flex-col gap-4">
-                     <svg className="w-16 h-16 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
-                     Preview Server Not Connected
-                   </div>
+                <div className="pv-frame flex-1 bg-zinc-900 border border-t-0 border-white/5 overflow-hidden relative">
+                   {previewUrl ? (
+                     <iframe
+                       className="preview-iframe w-full h-full border-0"
+                       src={previewUrl}
+                       title="Sandbox Preview"
+                       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                     />
+                   ) : (
+                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-600 font-mono text-xs tracking-wider">
+                       <svg className="w-10 h-10 opacity-40 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+                       <span>RUN YOUR APP IN THE TERMINAL FIRST</span>
+                       <span className="text-zinc-700 normal-case">e.g. <code className="text-indigo-400">npm run dev</code> or <code className="text-indigo-400">python main.py</code></span>
+                     </div>
+                   )}
                 </div>
               </>
             )}

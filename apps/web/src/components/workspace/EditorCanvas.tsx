@@ -98,6 +98,26 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     }, 1000);
   }, [activeFile, projectId, getToken]);
 
+  const handleEditorBeforeMount = (monaco: any) => {
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+      jsx: monaco.languages.typescript.JsxEmit.React,
+      allowNonTsExtensions: true,
+      moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+      module: monaco.languages.typescript.ModuleKind.CommonJS,
+      noEmit: true,
+      esModuleInterop: true,
+      reactNamespace: "React",
+      target: monaco.languages.typescript.ScriptTarget.Latest,
+      allowJs: true,
+    });
+
+    // Suppress semantic errors (missing modules etc) since it's a basic cloud IDE
+    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: false,
+    });
+  };
+
   const handleEditorDidMount: OnMount = (editorInstance) => {
     editorRef.current = editorInstance;
 
@@ -213,6 +233,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
             key={activeFile} // Force full remount when switching files → clean Yjs binding
             height="100%"
             language={getLanguage(activeFile)}
+            path={activeFile} // CRITICAL: Tells Monaco to treat this as a specific file type like .tsx
             theme="vs-dark"
             options={{
               fontSize: 14,
@@ -230,6 +251,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
               renderLineHighlight: 'all',
               wordWrap: 'on'
             }}
+            beforeMount={handleEditorBeforeMount}
             onMount={handleEditorDidMount}
           />
         )}

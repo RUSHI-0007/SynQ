@@ -2,6 +2,7 @@ export interface ContainerConfig {
   projectId: string;
   containerId: string;
   port: number;
+  previewUrl?: string;  // Public URL where the container's app is accessible
   status: 'starting' | 'running' | 'stopped' | 'error';
   platform: 'linux/amd64' | 'linux/arm64';
   workspacePath: string;
