@@ -141,8 +141,12 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     );
 
     if (currentUser) {
+      const fullName = currentUser.firstName
+        ? `${currentUser.firstName} ${currentUser.lastName || ''}`.trim()
+        : currentUser.username || 'Anonymous';
       provider.awareness.setLocalStateField('user', {
-        name: currentUser.firstName || currentUser.username || 'Anonymous',
+        name: fullName,
+        id: currentUser.id,   // include Clerk userId for reliable dedup
         color: '#' + ((Math.random() * 0xffffff) | 0).toString(16).padStart(6, '0'),
       });
       provider.awareness.setLocalStateField('activeFile', activeFile);
@@ -211,13 +215,20 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
             language={getLanguage(activeFile)}
             theme="vs-dark"
             options={{
-              fontSize: 13,
-              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: 14,
+              fontFamily: '"Fira Code", "JetBrains Mono", Menlo, Monaco, Consolas, "Courier New", monospace',
+              fontLigatures: true,
+              lineHeight: 1.6,
               minimap: { enabled: false },
               roundedSelection: true,
               scrollBeyondLastLine: false,
-              padding: { top: 20 },
+              padding: { top: 24, bottom: 24 },
               lineNumbersMinChars: 3,
+              cursorBlinking: 'smooth',
+              cursorSmoothCaretAnimation: 'on',
+              smoothScrolling: true,
+              renderLineHighlight: 'all',
+              wordWrap: 'on'
             }}
             onMount={handleEditorDidMount}
           />

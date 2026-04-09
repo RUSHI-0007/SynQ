@@ -88,13 +88,17 @@ CREATE TABLE IF NOT EXISTS merge_votes (
 -- Used by the consensus check to know "how many members total"
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS project_teammates (
-  project_id  TEXT        NOT NULL,
-  user_id     TEXT        NOT NULL,
-  role        TEXT        NOT NULL DEFAULT 'member' CHECK (role IN ('owner', 'member')),
-  joined_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  project_id   TEXT        NOT NULL,
+  user_id      TEXT        NOT NULL,
+  role         TEXT        NOT NULL DEFAULT 'member' CHECK (role IN ('owner', 'member')),
+  custom_role  TEXT,                         -- Free-text role label chosen by the user on join (e.g. "Frontend Dev")
+  joined_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   PRIMARY KEY (project_id, user_id)
 );
+
+-- Migration: Add custom_role to existing project_teammates table (safe to run multiple times)
+ALTER TABLE project_teammates ADD COLUMN IF NOT EXISTS custom_role TEXT;
 
 -- ─────────────────────────────────────────────────────────────
 -- Table: container_snapshots

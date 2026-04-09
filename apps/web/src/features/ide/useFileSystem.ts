@@ -84,7 +84,7 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
     try {
       const token = await getToken();
       const res = await fetch(
-        getApiUrl(`api/fs/${projectId}/file?path=${encodeURIComponent(path)}`),
+        getApiUrl(`api/workspace/${projectId}/file?path=${encodeURIComponent(path)}`),
         { headers: getApiHeaders(token) }
       );
       if (!res.ok) {
@@ -92,7 +92,9 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
         throw new Error(body.error || `Failed to read file (${res.status})`);
       }
 
-      const content = await res.text();
+      // The workspace API returns { content: string } JSON
+      const json = await res.json();
+      const content: string = typeof json === 'string' ? json : (json.content ?? '');
 
       // Update Monaco editor content directly if we have the ref
       if (editorRef.current) {

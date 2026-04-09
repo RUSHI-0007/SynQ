@@ -125,6 +125,19 @@ router.post('/scaffold', async (req, res, next) => {
 
     if (error) {
       console.warn('[Supabase] Could not persist project (using in-memory cache):', error.message);
+    } else {
+      // Automatically add the creator as a teammate (owner)
+      const { error: teamErr } = await supabase
+        .from('project_teammates')
+        .insert([{
+          project_id: projectId,
+          user_id: scopeId,
+          role: 'owner',
+          custom_role: null,
+        }]);
+      if (teamErr) {
+        console.warn('[Supabase] Could not persist owner to teammates:', teamErr.message);
+      }
     }
 
     const containerConfig = await ContainerService.createProjectContainer(templateId, projectId);
@@ -171,7 +184,7 @@ router.get('/:id/teammates', async (req, res, next) => {
     // 1. Get user_ids from Supabase project_teammates table
     const { data: members, error } = await supabase
       .from('project_teammates')
-      .select('user_id, role')
+      .select('user_id, role, custom_role')
       .eq('project_id', id);
 
     if (error) {
@@ -180,7 +193,23 @@ router.get('/:id/teammates', async (req, res, next) => {
       return;
     }
 
-    if (!members || members.length === 0) {
+    let finalMembers = members || [];
+
+    // Fallback: Ensure the project owner exists in the members list
+    const { data: projectData } = await supabase
+      .from('projects')
+      .select('ownerId')
+      .eq('id', id)
+      .single();
+
+    if (projectData && projectData.ownerId) {
+      const ownerExists = finalMembers.some((m: any) => m.user_id === projectData.ownerId);
+      if (!ownerExists) {
+        finalMembers.push({ user_id: projectData.ownerId, role: 'owner', custom_role: null });
+      }
+    }
+
+    if (finalMembers.length === 0) {
       res.json([]);
       return;
     }
@@ -194,11 +223,14 @@ router.get('/:id/teammates', async (req, res, next) => {
       members.map(async (m) => {
         try {
           const user = await clerk.users.getUser(m.user_id);
+          const nameParts = [user.firstName, user.lastName].filter((p): p is string => !!p && p !== 'null');
+          const name = nameParts.length > 0 ? nameParts.join(' ') : (user.username || user.emailAddresses?.[0]?.emailAddress || 'Anonymous');
           return {
             id: user.id,
-            name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.username || 'Anonymous',
+            name,
             avatarUrl: user.imageUrl,
             role: m.role,
+            customRole: m.custom_role || null,
           };
         } catch (clerkErr) {
           console.warn(`[Clerk] Could not resolve user ${m.user_id}:`, clerkErr);
@@ -208,6 +240,7 @@ router.get('/:id/teammates', async (req, res, next) => {
             name: 'Unknown User',
             avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user_id}`,
             role: m.role,
+            customRole: m.custom_role || null,
           };
         }
       })
@@ -260,7 +293,7 @@ router.post('/:id/resume', async (req, res, next) => {
 router.post('/:id/join', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { userId, role = 'member' } = req.body as { userId: string, role?: string };
+    const { userId, role: customRole } = req.body as { userId: string, role?: string };
 
     if (!userId) {
       res.status(400).json({ error: 'userId is required' });
@@ -272,7 +305,7 @@ router.post('/:id/join', async (req, res, next) => {
     if (!cached) {
       const { data: project, error } = await supabase
         .from('projects')
-        .select('id')
+        .select('id, ownerId')
         .eq('id', id)
         .single();
       if (error || !project) {
@@ -281,11 +314,27 @@ router.post('/:id/join', async (req, res, next) => {
       }
     }
 
-    // 2. Upsert into project_teammates (safe to call multiple times)
+    // Also ensure the project owner is seeded as a teammate (idempotent fix)
+    const projectRecord = projectCache.get(id);
+    if (projectRecord) {
+      await supabase
+        .from('project_teammates')
+        .upsert(
+          { project_id: id, user_id: projectRecord.ownerId, role: 'owner' },
+          { onConflict: 'project_id,user_id' }
+        );
+    }
+
+    // 2. Upsert into project_teammates — store custom_role text, system role stays 'member'
     const { error: upsertError } = await supabase
       .from('project_teammates')
       .upsert(
-        { project_id: id, user_id: userId, role },
+        { 
+          project_id: id, 
+          user_id: userId, 
+          role: 'member',
+          custom_role: customRole?.trim() || null,
+        },
         { onConflict: 'project_id,user_id' }
       );
 
@@ -371,9 +420,8 @@ router.post('/:id/invite', async (req, res, next) => {
       return;
     }
 
-    const name = invitedUser.firstName
-      ? `${invitedUser.firstName} ${invitedUser.lastName || ''}`.trim()
-      : invitedUser.username || email;
+    const nameParts = [invitedUser.firstName, invitedUser.lastName].filter((p): p is string => !!p && p !== 'null');
+    const name = nameParts.length > 0 ? nameParts.join(' ') : (invitedUser.username || email);
 
     res.json({ success: true, name, userId: invitedUser.id });
   } catch (error) {

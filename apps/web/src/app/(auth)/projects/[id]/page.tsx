@@ -60,6 +60,13 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
   const [currentMode, setCurrentMode] = useState<"code" | "design" | "preview">("code");
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [activePanel, setActivePanel] = useState<'explorer' | 'layout' | 'git' | 'settings' | null>('explorer');
+
+  // Derive sorted teammates bringing current user to the front
+  const sortedTeammates = React.useMemo(() => {
+    if (!user) return teammates;
+    const isMe = (t: any) => t.id === user.id;
+    return [...teammates].sort((a, b) => (isMe(a) ? -1 : isMe(b) ? 1 : 0));
+  }, [teammates, user]);
   const [toastMsg, setToastMsg] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(["src", "app"]));
@@ -130,18 +137,20 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
 
   const handleCreateSubmit = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      const fullPath = creatingFileParent ? `${creatingFileParent}/${createValue}` : createValue;
+      e.preventDefault(); // Prevent onBlur from firing after Enter
+      const val = (e.target as HTMLInputElement).value.trim();
+      const fullPath = creatingFileParent ? `${creatingFileParent}/${val}` : val;
+      setCreatingFileParent(null); // Close input immediately
+      setCreateValue("");
       if (fullPath) {
         try {
           await createFile(fullPath);
           await openFile(fullPath);
-          showToast("Created successfully");
+          showToast(`✓ Created: ${fullPath}`);
         } catch(err: any) {
           showToast(err.message || 'Creation failed');
         }
       }
-      setCreatingFileParent(null);
-      setCreateValue("");
     } else if (e.key === "Escape") {
       setCreatingFileParent(null);
       setCreateValue("");
@@ -283,7 +292,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
                     type="text" autoFocus
                     className="bg-[#0a0a0c] border border-blue-500/50 text-xs px-1 text-white outline-none w-full ml-1" 
                     value={createValue} onChange={e => setCreateValue(e.target.value)} 
-                    onKeyDown={handleCreateSubmit} onBlur={() => setCreatingFileParent(null)}
+                    onKeyDown={handleCreateSubmit} onBlur={() => setTimeout(() => setCreatingFileParent(null), 150)}
                   />
                 </div>
               )}
@@ -334,12 +343,11 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
     <div className="ide-body fixed inset-0 w-screen h-screen z-0 overflow-hidden bg-[#0d1117]">
       {/* TITLEBAR */}
       <header className="titlebar shrink-0">
-        <div className="tl-left">
-          <div className="logo cursor-pointer" onClick={() => window.location.href='/dashboard'}>
-            <div className="logo-icon">SQ</div>
-            <span className="logo-text hidden sm:inline-block">SYNQ</span>
+        <div className="tl-left pl-3">
+          <div className="text-base font-bold tracking-[0.2em] font-sans text-white cursor-pointer select-none hover:opacity-80 transition-opacity mr-4" onClick={() => window.location.href='/dashboard'}>
+            SYN<span className="text-indigo-500">Q</span>
           </div>
-          <div className="project-pill" onClick={() => showToast('View project settings')}>
+        <div className="project-pill" onClick={() => showToast('View project settings')}>
             <span style={{ color: "var(--text-2)", fontSize: 11 }}>⎇</span>
             <span className="truncate max-w-[150px]">{params.id}</span>
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4l4 4 4-4" /></svg>
@@ -356,11 +364,14 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
         </div>
         <div className="tl-right">
           <div className="team-stack mr-2 hidden lg:flex">
-            {teammates.slice(0, 3).map(t => (
-              <div key={t.id} className="t-av online border border-white/10" style={{ backgroundImage: `url(${t.avatarUrl})`, backgroundSize: 'cover' }} title={t.name} />
-            ))}
-            {teammates.length > 3 && (
-              <div className="t-av" style={{ background: "var(--bg-elevated)", color: "var(--text-2)", fontSize: 9, fontWeight: 600, border: "1px solid var(--border)" }} title={`${teammates.length - 3} more`}>+{teammates.length - 3}</div>
+            {sortedTeammates.slice(0, 3).map(t => {
+              const isMe = user?.id === t.id;
+              return (
+                <div key={t.id} className="t-av online border border-white/10" style={{ backgroundImage: `url(${t.avatarUrl})`, backgroundSize: 'cover' }} title={t.name + (isMe ? ' (You)' : '')} />
+              );
+            })}
+            {sortedTeammates.length > 3 && (
+              <div className="t-av" style={{ background: "var(--bg-elevated)", color: "var(--text-2)", fontSize: 9, fontWeight: 600, border: "1px solid var(--border)" }} title={`${sortedTeammates.length - 3} more`}>+{sortedTeammates.length - 3}</div>
             )}
           </div>
           <button className="vote-chip mr-2 shrink-0" onClick={handleProposeMerge} disabled={isProposing}>
@@ -419,7 +430,8 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
                       type="text" autoFocus
                       className="bg-[#0a0a0c] border border-blue-500/50 text-xs px-1 text-white outline-none w-full ml-1" 
                       value={createValue} onChange={e => setCreateValue(e.target.value)} 
-                      onKeyDown={handleCreateSubmit} onBlur={() => setCreatingFileParent(null)}
+                      onKeyDown={handleCreateSubmit}
+                      onBlur={() => setTimeout(() => setCreatingFileParent(null), 150)}
                     />
                   </div>
                 )}
@@ -436,31 +448,46 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
                   Teammates & Guests
                 </div>
                 <div className="px-2 space-y-0.5 max-h-[120px] overflow-y-auto">
-                  {/* Filter out duplicates by name between DB teammates and Live Presence */}
+                  {/* Dedup by Clerk user ID (from presence p.user.id), fall back to name */}
                   {(() => {
+                    const uniqueIds = new Set<string>();
                     const uniqueNames = new Set<string>();
                     const members: React.ReactNode[] = [];
                     
-                    // Render DB Teammates
-                    teammates.forEach(t => {
-                      const isOnline = activePresence.some(p => p.user?.name === t.name);
-                      uniqueNames.add(t.name);
+                    // Render DB Teammates first
+                    sortedTeammates.forEach(t => {
+                      const isMe = user?.id === t.id;
+                      const isOnline = isMe || activePresence.some(p => p.user?.id === t.id || p.user?.name === t.name);
+                      uniqueIds.add(t.id);
+                      uniqueNames.add(t.name.toLowerCase());
+                      const tm = t as any;
                       members.push(
                         <div key={t.id} className="flex items-center gap-2 group hover:bg-white/5 px-2 py-1.5 rounded-lg cursor-pointer">
                           <div className="relative shrink-0">
                             <div className="w-5 h-5 rounded-full bg-zinc-800" style={{ backgroundImage: `url(${t.avatarUrl})`, backgroundSize: 'cover' }}></div>
                             <div className={`absolute -bottom-0.5 right-0 w-2 h-2 rounded-full border border-[#010409] ${isOnline ? 'bg-emerald-500' : 'bg-zinc-600'}`}></div>
                           </div>
-                          <span className="text-xs text-zinc-400 group-hover:text-zinc-200 truncate flex-1">{t.name}</span>
-                          {t.role === 'owner' && <span className="text-[9px] text-rose-400/80 uppercase tracking-widest">Admin</span>}
+                          <span className="text-xs text-zinc-400 group-hover:text-zinc-200 truncate flex-1 font-medium">{t.name}{isMe ? ' (You)' : ''}</span>
+                          {t.role === 'owner'
+                            ? <span className="text-[9px] text-rose-400/80 uppercase tracking-widest">Owner</span>
+                            : tm.customRole
+                              ? <span className="text-[9px] text-indigo-400/80 truncate max-w-[60px]" title={tm.customRole}>{tm.customRole}</span>
+                              : null
+                          }
                         </div>
                       );
                     });
 
-                    // Render Active External Guests
+                    // Render Live Presence that aren't already in the DB list
                     activePresence.forEach((p, idx) => {
-                      if (p.user?.name && !uniqueNames.has(p.user.name)) {
-                        uniqueNames.add(p.user.name);
+                      const presenceId = p.user?.id;
+                      const presenceName = (p.user?.name || '').toLowerCase();
+                      const alreadyShown = 
+                        (presenceId && uniqueIds.has(presenceId)) ||
+                        uniqueNames.has(presenceName);
+                      if (p.user?.name && !alreadyShown) {
+                        uniqueIds.add(presenceId || `guest-${idx}`);
+                        uniqueNames.add(presenceName);
                         members.push(
                            <div key={`guest-${idx}`} className="flex items-center gap-2 group hover:bg-white/5 px-2 py-1.5 rounded-lg cursor-pointer relative overflow-hidden">
                              <div className="relative shrink-0 z-10">

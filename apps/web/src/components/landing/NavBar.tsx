@@ -26,9 +26,9 @@ export function NavBar({ onLoginClick }: NavBarProps) {
     <nav className={`fixed top-0 left-0 w-full h-[60px] flex items-center justify-between px-6 md:px-10 z-[999] transition-all duration-500 ${
       scrolled ? 'bg-[#0a0a10]/40 backdrop-blur-xl saturate-150 border-b border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]' : 'bg-transparent border-b-transparent'
     }`}>
-      <div className="text-base font-bold tracking-[0.2em] font-sans text-white cursor-pointer select-none">
+      <Link href="/" className="text-base font-bold tracking-[0.2em] font-sans text-white cursor-pointer select-none border-none outline-none hover:opacity-80 transition-opacity">
         SYN<span className="text-indigo-500">Q</span>
-      </div>
+      </Link>
       
       <div className="hidden md:flex gap-8 text-[13px] font-medium">
         <a href="#hero" className="text-white/65 hover:text-white transition-colors duration-200">Features</a>

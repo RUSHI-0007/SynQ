@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import { Plus, LayoutGrid, AlertCircle, Loader2 } from 'lucide-react';
 import { useProjects } from '@/features/projects/useProjects';
@@ -16,10 +17,9 @@ export default function DashboardPage() {
       {/* Top Navbar */}
       <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 border-b border-white/[0.04] bg-[#0A0A0A]">
         <div className="flex flex-col">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-100 flex items-center gap-3">
-            <LayoutGrid className="w-6 h-6 text-blue-500" />
-            Hackathon Hub
-          </h1>
+          <Link href="/" className="text-2xl font-bold tracking-[0.2em] font-sans text-gray-100 flex flex-col sm:flex-row sm:items-center gap-3 cursor-pointer select-none border-none outline-none hover:opacity-80 transition-opacity">
+            <div>SYN<span className="text-indigo-500">Q</span></div>
+          </Link>
           <p className="text-xs text-neutral-500 mt-1 uppercase tracking-widest font-mono">
             Active Workspace
           </p>
