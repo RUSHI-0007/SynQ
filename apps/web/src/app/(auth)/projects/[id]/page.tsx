@@ -64,7 +64,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
         const res = await fetch(getApiUrl(`api/projects/${params.id}`), { headers: getApiHeaders(token) });
         if (res.ok) {
           const data = await res.json();
-          if (data.previewUrl) setPreviewUrl(data.previewUrl);
+          if (data.previewUrl || data.previewurl) setPreviewUrl(data.previewUrl || data.previewurl);
         }
       } catch { /* silent — preview just stays hidden */ }
     })();

@@ -547,7 +547,7 @@ export class ContainerService {
     // Store previewUrl on the project record so any collaborator can load it
     await supabase
       .from('projects')
-      .update({ previewUrl })
+      .update({ previewurl: previewUrl })
       .eq('id', projectId);
 
     return {

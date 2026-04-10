@@ -119,8 +119,8 @@ router.post('/scaffold', async (req, res, next) => {
         id: projectId,
         name: projectName,
         status: 'active',
-        ownerId: scopeId,
-        templateId,
+        ownerid: scopeId,
+        templateid: templateId,
       }]);
 
     if (error) {
