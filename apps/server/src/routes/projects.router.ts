@@ -140,18 +140,31 @@ router.post('/scaffold', async (req, res, next) => {
       }
     }
 
-    const containerConfig = await ContainerService.createProjectContainer(templateId, projectId);
+    // ── RESPOND IMMEDIATELY (before Docker) so Cloudflare tunnel doesn't time out ──
+    // Cloudflare free tunnels kill requests after 30s. Docker can take 60-120s on first
+    // run (image pull). We return the project record right away and do Docker in background.
+    res.json({ project: newProject, container: { status: 'booting', projectId } });
 
-    // Backfill previewUrl into the in-memory cache so GET /:id returns it immediately
-    if (containerConfig.previewUrl) {
-      projectCache.set(projectId, { ...newProject, previewUrl: containerConfig.previewUrl } as any);
-    }
+    // ── BACKGROUND: spin up the Docker container async ──
+    ContainerService.createProjectContainer(templateId, projectId)
+      .then((containerConfig) => {
+        if (containerConfig.previewUrl) {
+          projectCache.set(projectId, { ...newProject, previewUrl: containerConfig.previewUrl } as any);
+          // Persist previewUrl back to Supabase
+          supabase.from('projects').update({ previewurl: containerConfig.previewUrl }).eq('id', projectId)
+            .then(({ error }) => { if (error) console.warn('[Supabase] previewUrl backfill failed:', error.message); });
+        }
+        console.log(`[Scaffold] Container ready for project ${projectId}`);
+      })
+      .catch((err) => {
+        console.error(`[Scaffold] Background container creation failed for ${projectId}:`, err.message);
+      });
 
-    res.json({ project: newProject, container: containerConfig });
   } catch (error) {
     next(error);
   }
 });
+
 
 // ─── GET /api/projects/:id ────────────────────────────────────────────────
 router.get('/:id', async (req, res, next) => {
