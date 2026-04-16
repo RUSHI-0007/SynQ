@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { MergeService } from '../services/merge.service';
+import { FsService } from '../services/fs.service';
 import { supabase } from '../lib/supabase';
 
 const router = Router();
@@ -10,14 +11,17 @@ const router = Router();
 // ─────────────────────────────────────────────────────────────
 router.post('/propose', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { projectId, authorId, commitMessage, diffPayload, filesChanged, githubOwner, githubRepo } = req.body;
+    const { projectId, authorId, commitMessage, githubOwner, githubRepo } = req.body;
 
-    if (!projectId || !authorId || !diffPayload || !filesChanged) {
+    if (!projectId || !authorId || !githubOwner || !githubRepo) {
       res.status(400).json({
-        error: 'projectId, authorId, diffPayload, filesChanged are required',
+        error: 'projectId, authorId, githubOwner, githubRepo are required',
       });
       return;
     }
+
+    const filesChanged = await FsService.getFlatPaths(projectId);
+    const diffPayload = "Bulk sync from SYNQ IDE workspace";
 
     const request = await MergeService.createMergeRequest({
       projectId,

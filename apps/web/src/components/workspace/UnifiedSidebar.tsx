@@ -13,6 +13,7 @@ interface Teammate {
   name: string;
   avatarUrl: string;
   role: string;
+  customRole?: string | null;
 }
 
 interface UnifiedSidebarProps {
@@ -256,7 +257,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                    />
                    <div className="flex flex-col">
                      <span className="text-[13px] font-medium text-zinc-300 truncate max-w-[140px] group-hover:text-white transition-colors">{member.name}</span>
-                     <span className="text-[10px] text-zinc-500 capitalize">{member.role}</span>
+                     <span className="text-[10px] text-zinc-500 capitalize">{member.customRole || member.role}</span>
                    </div>
                  </div>
                ))}

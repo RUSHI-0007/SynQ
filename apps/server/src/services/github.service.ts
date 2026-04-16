@@ -1,7 +1,4 @@
 import { Octokit } from '@octokit/rest';
-import { env } from '../config/env';
-
-const octokit = new Octokit({ auth: env.GITHUB_PRIVATE_KEY }); // Treats it as a PAT because it's a simple string
 
 export class GithubService {
   /**
@@ -13,10 +10,11 @@ export class GithubService {
   static async executeMergePush(
     repoOwner: string,
     repoName: string,
-    diffPayload: string,
-    filesChanged: string[],
+    fileContents: { path: string; content: string }[],
     commitMessage: string = 'Consensus merge 🚀',
+    userOauthToken: string
   ): Promise<string> {
+    const octokit = new Octokit({ auth: userOauthToken });
     console.log(`[GitHub] Pushing to ${repoOwner}/${repoName}...`);
 
     // 1. Resolve latest commit SHA on `main`
@@ -36,13 +34,11 @@ export class GithubService {
     const baseTreeSha = commitData.tree.sha;
 
     // 3. Build Git tree entries — one blob per changed file
-    // In a full implementation you'd parse the unified diff into per-file content;
-    // here each file in filesChanged gets the full diffPayload as its content.
-    const treeEntries = filesChanged.map(filePath => ({
-      path: filePath,
+    const treeEntries = fileContents.map(file => ({
+      path: file.path,
       mode: '100644' as const,
       type: 'blob' as const,
-      content: diffPayload,
+      content: file.content,
     }));
 
     const { data: newTree } = await octokit.rest.git.createTree({

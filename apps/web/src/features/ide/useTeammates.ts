@@ -7,6 +7,7 @@ export interface Teammate {
   name: string;
   avatarUrl: string;
   role: 'owner' | 'member';
+  customRole?: string | null;
 }
 
 export function useTeammates(projectId: string) {

@@ -100,6 +100,17 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
   // Real App States
   const [mergeOpen, setMergeOpen] = useState(false);
   const [isTerminalVisible, setIsTerminalVisible] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileAiOpen, setMobileAiOpen] = useState(false);
+  const [mobileMode, setMobileMode] = useState<'code' | 'preview'>('code');
+
+  // GitHub Prompt Modal (replaces window.prompt — blocked on iOS)
+  const [ghPrompt, setGhPrompt] = useState<{
+    open: boolean;
+    owner: string;
+    repo: string;
+    submitting: boolean;
+  }>({ open: false, owner: 'rushi-codehub', repo: 'hackathon-demo-repo', submitting: false });
   
   // AI Mock State
   const [aiTyping, setAiTyping] = useState(false);
@@ -140,15 +151,24 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
   };
 
   const handleProposeMerge = async () => {
-    if (!user || !activeFile) {
-      showToast('Select a file to propose a merge');
-      return;
-    }
+    if (!user) return;
+    // Open native in-UI modal — window.prompt() is blocked on iOS Safari
+    setGhPrompt(p => ({ ...p, open: true, submitting: false }));
+  };
+
+  const handleGhPromptSubmit = async () => {
+    if (!user) return;
+    const owner = ghPrompt.owner.trim();
+    const repo = ghPrompt.repo.trim();
+    if (!owner || !repo) return;
+    setGhPrompt(p => ({ ...p, submitting: true }));
     try {
-      await proposeMerge(user.id, [activeFile], activeContent);
+      await proposeMerge(user.id, owner, repo);
+      setGhPrompt(p => ({ ...p, open: false, submitting: false }));
       setMergeOpen(true);
     } catch (err) {
-      console.error("Failed to propose merge:", err);
+      console.error('Failed to propose merge:', err);
+      setGhPrompt(p => ({ ...p, submitting: false }));
       showToast('Failed to propose merge');
     }
   };
@@ -224,39 +244,132 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleAISend = () => {
+  const handleAISend = async () => {
     if (!aiInput.trim()) return;
-    setAiMessages(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        sender: "You",
-        senderInitials: userName.substring(0, 1).toUpperCase(),
-        time: "just now",
-        content: aiInput.trim(),
-        reasoning: false,
-        diff: false,
-        isUser: true
-      }
-    ]);
+    
+    const userMessageContent = aiInput.trim();
     setAiInput("");
+
+    // 1. Add User Message
+    const newUserMessage = {
+      id: Date.now().toString(),
+      sender: "You",
+      senderInitials: userName.substring(0, 1).toUpperCase(),
+      time: "just now",
+      content: userMessageContent,
+      reasoning: false,
+      diff: false,
+      isUser: true,
+      role: 'user'
+    };
+    
+    setAiMessages(prev => [...prev, newUserMessage]);
     setAiTyping(true);
-    setTimeout(() => {
+
+    try {
+      const token = await getToken();
+      const { getApiUrl, getApiHeaders } = await import('@/lib/api-client');
+      
+      const res = await fetch(getApiUrl(`api/ai/chat`), {
+        method: 'POST',
+        headers: {
+          ...getApiHeaders(token),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages: [...aiMessages, newUserMessage],
+          context: {
+            projectId: params.id,
+            activeFile,
+            fileContent: activeContent,
+            tree
+          }
+        })
+      });
+
+      if (!res.body) throw new Error("No ReadableStream available");
+
       setAiTyping(false);
+      
+      // 2. Add empty AI Message to be streamed into
+      const aiMessageId = (Date.now() + 1).toString();
       setAiMessages(prev => [
         ...prev,
         {
-          id: (Date.now() + 1).toString(),
+          id: aiMessageId,
           sender: "SYNQ AI",
           senderInitials: "S",
           time: "just now",
-          content: "I have reviewed your request. I cannot make live changes yet without an active agent connection, but I'm ready for instructions.",
+          content: "",
           reasoning: false,
           diff: false,
-          isUser: false
+          isUser: false,
+          role: 'ai'
         }
       ]);
-    }, 1500);
+
+      // 3. Read the Server-Sent Events stream
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let streamedResponse = "";
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          // chunk could have multiple "data: {...}\n\n"
+          const lines = chunk.split('\n\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.replace('data: ', '');
+              if (dataStr === '[DONE]') {
+                done = true;
+                break;
+              }
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.text) {
+                  streamedResponse += parsed.text;
+                  setAiMessages(prev => 
+                    prev.map(m => m.id === aiMessageId ? { ...m, content: streamedResponse } : m)
+                  );
+                } else if (parsed.action === 'EXEC_START') {
+                  streamedResponse += `\n\n<div style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); padding: 8px 12px; border-radius: 6px; font-size: 0.85em; color: #a5b4fc; display: flex; align-items: center; gap: 8px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                    <span>Executing <code>${parsed.tool}</code> on ${parsed.path}...</span>
+                  </div>\n\n`;
+                  setAiMessages(prev => 
+                    prev.map(m => m.id === aiMessageId ? { ...m, content: streamedResponse } : m)
+                  );
+                } else if (parsed.action === 'RELOAD_FILE') {
+                  streamedResponse += `<div style="color: #34d399; font-size: 0.85em; margin-bottom: 8px;">✓ Successfully updated <code>${parsed.path}</code></div>`;
+                  setAiMessages(prev => 
+                    prev.map(m => m.id === aiMessageId ? { ...m, content: streamedResponse } : m)
+                  );
+                  // Force the editor to reload if they're looking at the file that just changed
+                  if (activeFile === parsed.path) {
+                    // Slight delay to ensure Docker has fully flushed
+                    setTimeout(() => openFile(parsed.path), 500);
+                  }
+                } else if (parsed.error) {
+                  streamedResponse += `\n\n<span style="color: #ff5555">[Stream Error: ${parsed.error}]</span>`;
+                  setAiMessages(prev => 
+                    prev.map(m => m.id === aiMessageId ? { ...m, content: streamedResponse } : m)
+                  );
+                }
+              } catch (e) {
+                // Ignore incomplete JSON chunks (though Express res.write usually drops whole chunks)
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('AI Request Failed:', err);
+      setAiTyping(false);
+    }
   };
 
   const renderNodes = (nodes: FileNode[], depth: number) => {
@@ -359,6 +472,52 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
 
   return (
     <div className="ide-body fixed inset-0 w-screen h-screen z-0 overflow-hidden bg-[#0d1117]">
+
+      {/* GitHub Propose Merge Prompt Modal */}
+      {ghPrompt.open && (
+        <div className="gh-prompt-overlay" onClick={() => setGhPrompt(p => ({...p, open: false}))}>
+          <div className="gh-prompt-card" onClick={e => e.stopPropagation()}>
+            <div className="gh-prompt-title">Push to GitHub</div>
+            <div className="gh-prompt-sub">Enter the target repository. It must exist on GitHub with a README (initialized main branch).</div>
+            <div className="gh-prompt-field">
+              <label className="gh-prompt-label">GitHub Owner / Org</label>
+              <input
+                className="gh-prompt-input"
+                placeholder="e.g. rushi-codehub"
+                value={ghPrompt.owner}
+                onChange={e => setGhPrompt(p => ({...p, owner: e.target.value}))}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+              />
+            </div>
+            <div className="gh-prompt-field">
+              <label className="gh-prompt-label">Repository Name</label>
+              <input
+                className="gh-prompt-input"
+                placeholder="e.g. my-hackathon-repo"
+                value={ghPrompt.repo}
+                onChange={e => setGhPrompt(p => ({...p, repo: e.target.value}))}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                onKeyDown={e => { if(e.key === 'Enter') handleGhPromptSubmit(); }}
+              />
+            </div>
+            <div className="gh-prompt-actions">
+              <button className="gh-prompt-cancel" onClick={() => setGhPrompt(p => ({...p, open: false}))}>Cancel</button>
+              <button
+                className="gh-prompt-submit"
+                disabled={!ghPrompt.owner.trim() || !ghPrompt.repo.trim() || ghPrompt.submitting}
+                onClick={handleGhPromptSubmit}
+              >
+                {ghPrompt.submitting ? 'Proposing...' : 'Propose Merge ⚡'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TITLEBAR */}
       <header className="titlebar shrink-0">
         <div className="tl-left pl-3">
@@ -426,7 +585,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
         </div>
 
         {/* SIDEBAR */}
-        <aside className="sidebar shrink-0 flex flex-col min-h-0" style={{ display: activePanel ? "flex" : "none" }}>
+        <aside className={`sidebar shrink-0 flex flex-col min-h-0 ${mobileSidebarOpen ? 'mobile-open' : ''}`} style={{ display: activePanel ? "flex" : "none" }}>
           {activePanel === 'explorer' && (
             <>
               <div className="sb-head shrink-0 flex items-center justify-between group">
@@ -720,7 +879,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
         </main>
 
         {/* AI PANEL */}
-        <aside className={`ai-panel shrink-0 ${aiOpen ? 'flex' : 'hidden'} flex-col`}>
+        <aside className={`ai-panel shrink-0 ${aiOpen ? 'flex' : 'hidden'} ${mobileAiOpen ? 'mobile-open' : ''} flex-col`}>
           <div className="ai-ph flex items-center justify-between">
             <div className="ai-title flex items-center">
               <div className="ai-dot"></div>
@@ -809,6 +968,52 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
         teammates={teammates} 
         projectId={params.id} 
       />
+
+      {/* Mobile overlay backdrop */}
+      <div
+        className={`m-drawer-overlay ${mobileSidebarOpen || mobileAiOpen ? 'open' : ''}`}
+        onClick={() => { setMobileSidebarOpen(false); setMobileAiOpen(false); }}
+      />
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="mobile-nav">
+        <button
+          className={`mab ${mobileSidebarOpen ? 'active' : ''}`}
+          onClick={() => { setMobileSidebarOpen(v => !v); setMobileAiOpen(false); if(!activePanel) setActivePanel('explorer'); }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" /></svg>
+          Files
+        </button>
+        <button
+          className={`mab ${mobileMode === 'code' ? 'active' : ''}`}
+          onClick={() => { setCurrentMode('code'); setMobileMode('code'); setMobileSidebarOpen(false); setMobileAiOpen(false); }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
+          Code
+        </button>
+        <button
+          className={`mab ${mobileMode === 'preview' ? 'active' : ''}`}
+          onClick={() => { setCurrentMode('preview'); setMobileMode('preview'); setMobileSidebarOpen(false); setMobileAiOpen(false); }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+          Preview
+        </button>
+        <button
+          className={`mab ${mobileAiOpen ? 'active' : ''}`}
+          onClick={() => { setMobileAiOpen(v => !v); setAiOpen(true); setMobileSidebarOpen(false); }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+          AI
+        </button>
+        <button
+          className="mab"
+          onClick={handleProposeMerge}
+          disabled={isProposing}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="6" cy="6" r="2" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="9" r="2" /><path d="M6 8v8M6 8c3 0 5-1 6-3m6 4c-3 0-5-1-6-3" /></svg>
+          Merge
+        </button>
+      </nav>
 
       <div className={`toast ${toastVisible ? 'show' : ''}`}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>

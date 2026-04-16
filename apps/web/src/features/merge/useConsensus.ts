@@ -96,8 +96,8 @@ export function useConsensus(projectId: string) {
 
   const proposeMerge = useCallback(async (
     authorId: string, 
-    filesChanged: string[], 
-    diffPayload: string
+    githubOwner: string, 
+    githubRepo: string
   ): Promise<MergeProposal> => {
     setLoading(true);
     setError(null);
@@ -108,7 +108,7 @@ export function useConsensus(projectId: string) {
           ...getApiHeaders(),
           'Content-Type': 'application/json' 
         },
-        body: JSON.stringify({ projectId, authorId, filesChanged, diffPayload }),
+        body: JSON.stringify({ projectId, authorId, githubOwner, githubRepo }),
       });
       if (!res.ok) throw new Error(await res.text());
       return res.json();

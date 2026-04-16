@@ -299,7 +299,7 @@ router.post('/:id/resume', async (req, res, next) => {
 router.post('/:id/join', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { userId, role: customRole } = req.body as { userId: string, role?: string };
+    const { userId, customRole } = req.body as { userId: string; customRole?: string };
 
     if (!userId) {
       res.status(400).json({ error: 'userId is required' });

@@ -26,7 +26,7 @@ export function useProjects() {
       if (!res.ok) {
         const text = await res.text();
         if (text.includes('ERR_NGROK') || text.includes('502 Bad Gateway') || text.trim().startsWith('<')) {
-          throw new Error('Backend server is offline. Please start your local server.');
+          throw new Error('Backend server is unavailable. Please try again shortly.');
         }
         throw new Error(text || 'Failed to fetch projects');
       }
@@ -64,7 +64,7 @@ export function useProjects() {
       if (!res.ok) {
         const text = await res.text();
         if (text.includes('ERR_NGROK') || text.includes('502 Bad Gateway') || text.trim().startsWith('<')) {
-          throw new Error('Backend server is offline. Please start your local server.');
+          throw new Error('Backend server is unavailable. Please try again shortly.');
         }
         throw new Error(text || 'Failed to scaffold project Container');
       }

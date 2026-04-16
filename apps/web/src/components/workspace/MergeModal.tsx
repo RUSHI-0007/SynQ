@@ -4,13 +4,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, CheckCircle2, GitMerge, FileCode2, Info } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase.
-// Assuming NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are in .env
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "@/lib/supabase";
+import { getApiUrl } from "@/lib/api-client";
 
 interface MergeRequest {
   id: string;
@@ -19,6 +14,7 @@ interface MergeRequest {
   commit_message: string;
   status: "pending" | "accepted" | "merged" | "rejected" | "failed";
   diff_payload: string;
+  files_changed: string[];
 }
 
 interface MergeVote {
@@ -38,11 +34,14 @@ interface MergeModalProps {
 export const MergeModal: React.FC<MergeModalProps> = ({
   projectId,
   teammates,
+  isOpen,
+  onClose,
 }) => {
   const { user } = useUser();
   const [activeRequest, setActiveRequest] = useState<MergeRequest | null>(null);
   const [votes, setVotes] = useState<MergeVote[]>([]);
   const [isVoting, setIsVoting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // 1. Initial Fetch & Realtime Subscription
   useEffect(() => {
@@ -73,7 +72,10 @@ export const MergeModal: React.FC<MergeModalProps> = ({
       if (data) setVotes(data);
     };
 
-    fetchActiveRequest();
+    // Only fetch if modal is open to ensure we get fresh data
+    if (isOpen) {
+      fetchActiveRequest();
+    }
 
     // Subscribe to new merge requests for this project
     const requestSub = supabase
@@ -97,10 +99,10 @@ export const MergeModal: React.FC<MergeModalProps> = ({
             newReq.status === "rejected"
           ) {
             // Close the modal if the active request resolves
-            if (activeRequest?.id === newReq.id) {
-              // Add a slight delay before closing so users see the success state
-              setTimeout(() => setActiveRequest(null), 2000);
-            }
+            setTimeout(() => {
+              setActiveRequest(null);
+              onClose?.();
+            }, 2000);
           }
         },
       )
@@ -130,7 +132,7 @@ export const MergeModal: React.FC<MergeModalProps> = ({
       supabase.removeChannel(requestSub);
       supabase.removeChannel(voteSub);
     };
-  }, [projectId, activeRequest?.id]);
+  }, [projectId, activeRequest?.id, isOpen]);
 
   // Derived state
   const hasVoted = useMemo(() => {
@@ -143,9 +145,10 @@ export const MergeModal: React.FC<MergeModalProps> = ({
   const handleVote = async () => {
     if (!activeRequest || !user) return;
     setIsVoting(true);
+    setErrorMessage(null);
     try {
-      // Hit our backend engine
-      await fetch("/api/merge/vote", {
+      // Hit our backend engine using the proxy path
+      const res = await fetch(getApiUrl("api/merge/vote"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -154,15 +157,21 @@ export const MergeModal: React.FC<MergeModalProps> = ({
           decision: "approve",
         }),
       });
+      
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || errJson.error || "Failed to vote");
+      }
       // State updates via Supabase Realtime
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to cast vote:", error);
+      setErrorMessage(error.message);
     } finally {
       setIsVoting(false);
     }
   };
 
-  if (!activeRequest) return null;
+  if (!isOpen || !activeRequest) return null;
 
   return (
     <AnimatePresence>
@@ -171,8 +180,10 @@ export const MergeModal: React.FC<MergeModalProps> = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        onClick={() => onClose?.()}
       >
         <motion.div
+          onClick={(e) => e.stopPropagation()}
           initial={{ scale: 0.95, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.95, y: 20 }}
@@ -218,47 +229,31 @@ export const MergeModal: React.FC<MergeModalProps> = ({
               </div>
             </div>
 
-            {/* Fake Git Diff Block */}
+            {/* Real Files Proposed Block */}
             <div>
               <div className="flex items-center gap-2 mb-3 px-1">
                 <FileCode2 size={16} className="text-zinc-500" />
                 <span className="text-sm text-zinc-400 font-medium">
-                  Changes proposed
+                  Files to sync to GitHub ({activeRequest.files_changed?.length || 0})
                 </span>
               </div>
-              <div className="rounded-xl overflow-hidden border border-zinc-800 bg-[#0d0d0d] font-mono text-[13px] leading-relaxed shadow-inner">
-                <div className="flex items-center px-4 py-2 border-b border-zinc-800 bg-zinc-900/50">
-                  <span className="text-zinc-500 text-xs">
-                    src/components/ui/Button.tsx
-                  </span>
-                </div>
-                <div className="p-4 overflow-x-auto whitespace-pre">
-                  <div className="text-zinc-500 line-through opacity-70">
-                    <span className="text-red-400 select-none mr-4">-</span>
-                    <span className="text-red-300">export const Button = () =&gt; {'{'}</span>
+              <div className="rounded-xl overflow-hidden border border-zinc-800 bg-[#0d0d0d] font-mono text-[13px] leading-relaxed shadow-inner max-h-[250px] overflow-y-auto">
+                {(activeRequest.files_changed || []).slice(0, 15).map((file, i) => (
+                  <div key={i} className="flex items-center px-4 py-2 border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors">
+                    <span className="text-zinc-500 mr-3 shrink-0">M</span>
+                    <span className="text-zinc-300 truncate">{file}</span>
                   </div>
-                  <div className="text-zinc-300">
-                    <span className="text-green-400 select-none mr-4">+</span>
-                    <span className="text-green-300">export const Button = ({'{'} variant = &apos;primary&apos; {'}'}) =&gt; {'{'}</span>
+                ))}
+                {(activeRequest.files_changed || []).length > 15 && (
+                  <div className="flex items-center px-4 py-2 bg-zinc-900/30 text-zinc-500 text-xs italic">
+                    + {(activeRequest.files_changed || []).length - 15} more files hidden
                   </div>
-                  <div className="text-zinc-500">
-                    <span className="text-transparent select-none mr-4"> </span> return (
+                )}
+                {!(activeRequest.files_changed?.length) && (
+                  <div className="flex items-center px-4 py-4 text-zinc-600 text-sm">
+                    No files found in workspace.
                   </div>
-                  <div className="text-zinc-500 line-through opacity-70">
-                    <span className="text-red-400 select-none mr-4">-</span>
-                    <span className="text-red-300">    &lt;button className=&quot;bg-blue-500&quot;&gt;</span>
-                  </div>
-                  <div className="text-zinc-300">
-                    <span className="text-green-400 select-none mr-4">+</span>
-                    <span className="text-green-300">    &lt;button className={`base-btn \${variant}`}&gt;</span>
-                  </div>
-                  <div className="text-zinc-500">
-                    <span className="text-transparent select-none mr-4"> </span>      Click me
-                  </div>
-                  <div className="text-zinc-500">
-                    <span className="text-transparent select-none mr-4"> </span>    &lt;/button&gt;
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -310,7 +305,14 @@ export const MergeModal: React.FC<MergeModalProps> = ({
           </div>
 
           {/* Footer CTAs */}
-          <div className="p-6 pt-2">
+          <div className="p-6 pt-2 space-y-3">
+            {errorMessage && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg flex items-start gap-2">
+                <Info size={16} className="mt-0.5 shrink-0" />
+                <p>{errorMessage}</p>
+              </div>
+            )}
+            
             <button
               onClick={handleVote}
               disabled={hasVoted || isVoting}

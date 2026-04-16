@@ -41,6 +41,13 @@ async function handleProxy(req: NextRequest, params: { path: string[] }) {
 
     const responseHeaders = new Headers(res.headers);
     responseHeaders.set('Access-Control-Allow-Origin', '*');
+    
+    // Cloudflare Edge compresses tunnel traffic and Node's fetch API automatically decompresses
+    // the body before returning it. But the original 'content-encoding' header is kept.
+    // If we pass this header back to the browser, the browser will try to double-decompress
+    // the already uncompressed body, resulting in ERR_CONTENT_DECODING_FAILED.
+    responseHeaders.delete('content-encoding');
+    responseHeaders.delete('content-length');
 
     return new NextResponse(res.body, {
       status: res.status,

@@ -1,5 +1,10 @@
 import { supabase } from '../lib/supabase';
 import { GithubService } from './github.service';
+import { FsService } from './fs.service';
+import { createClerkClient } from '@clerk/backend';
+import { env } from '../config/env';
+
+const clerkClient = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -168,12 +173,27 @@ export class MergeService {
     console.log(`[Consensus] Unanimous approval for ${mergeReq.id}. Triggering Octokit push...`);
 
     try {
+      // Fetch Clerk OAuth token for author
+      const tokens = await clerkClient.users.getUserOauthAccessToken(mergeReq.author_id, 'oauth_github');
+      const token = tokens.data[0]?.token;
+      if (!token) {
+        throw new Error('Author has not linked their GitHub account.');
+      }
+
+      // Fetch real file contents from the sandbox via FsService
+      const fileContents = await Promise.all(
+        mergeReq.files_changed.map(async (filePath: string) => {
+          const content = await FsService.readFile(mergeReq.project_id, filePath);
+          return { path: filePath, content };
+        })
+      );
+
       const sha = await GithubService.executeMergePush(
         mergeReq.github_owner,
         mergeReq.github_repo,
-        mergeReq.diff_payload,
-        mergeReq.files_changed,
+        fileContents,
         mergeReq.commit_message,
+        token
       );
 
       // Mark fully merged with the resulting commit SHA

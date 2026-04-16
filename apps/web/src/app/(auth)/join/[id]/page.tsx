@@ -10,7 +10,7 @@ type Status = 'loading' | 'prompt_role' | 'joining' | 'success' | 'error';
 
 export default function JoinProjectPage() {
   const { id } = useParams<{ id: string }>();
-  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { isLoaded, isSignedIn, userId, getToken } = useAuth();
   const router = useRouter();
   const [status, setStatus] = useState<Status>('loading');
   const [errorMsg, setErrorMsg] = useState('');
@@ -37,14 +37,14 @@ export default function JoinProjectPage() {
 
     setStatus('joining');
     try {
-      const token = null; // Next.js edge uses getApiHeaders properly, wait getApiHeaders requires token? No it auto pulls from cookies if not passed.
+      const token = await getToken();
       const res = await fetch(getApiUrl(`api/projects/${id}/join`), {
         method: 'POST',
         headers: {
-          ...getApiHeaders(),
+          ...getApiHeaders(token),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId, role: role.trim() }),
+        body: JSON.stringify({ userId, customRole: role.trim() }),
       });
 
       if (!res.ok) {
