@@ -87,6 +87,11 @@ INSTRUCTIONS:
       parts: [{ text: m.content || '' }],
     }));
 
+    // Ensure history starts with user for Gemini
+    while (history.length > 0 && history[0].role !== 'user') {
+      history.shift();
+    }
+
     const lastMessage = (messages || []).at(-1);
     const userPrompt = lastMessage?.content || '';
 

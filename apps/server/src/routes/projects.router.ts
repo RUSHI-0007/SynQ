@@ -21,18 +21,29 @@ router.get('/', async (req, res, next) => {
       return;
     }
 
-    // 1. Projects the user OWNS
-    const { data: ownedProjects, error: ownedError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('ownerId', scopeId)
-      .order('createdAt', { ascending: false });
+    try {
+      const { data: owned, error: ownedErr } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('ownerId', scopeId)
+        .order('createdAt', { ascending: false });
+      ownedProjects = owned;
+      ownedError = ownedErr;
+    } catch (err: any) {
+      ownedError = err;
+    }
 
     // 2. Projects the user is a TEAMMATE of (but doesn't own)
-    const { data: teammateRows } = await supabase
-      .from('project_teammates')
-      .select('project_id')
-      .eq('user_id', scopeId);
+    let teammateRows: any[] | null = null;
+    try {
+      const { data: tRows } = await supabase
+        .from('project_teammates')
+        .select('project_id')
+        .eq('user_id', scopeId);
+      teammateRows = tRows;
+    } catch (err: any) {
+      console.warn('[Supabase] Failed to fetch teammates:', err.message);
+    }
 
     let sharedDbProjects: any[] = [];
     let sharedCacheProjects: any[] = [];
@@ -41,11 +52,15 @@ router.get('/', async (req, res, next) => {
       const sharedProjectIds = teammateRows.map((r: any) => r.project_id);
       
       // Try from DB
-      const { data: shared } = await supabase
-        .from('projects')
-        .select('*')
-        .in('id', sharedProjectIds);
-      sharedDbProjects = shared ?? [];
+      try {
+        const { data: shared } = await supabase
+          .from('projects')
+          .select('*')
+          .in('id', sharedProjectIds);
+        sharedDbProjects = shared ?? [];
+      } catch (err: any) {
+        console.warn('[Supabase] Failed to fetch shared projects:', err.message);
+      }
 
       // Try from memory cache (since Supabase 'projects' table might not exist)
       const allCached = Array.from(projectCache.values());
@@ -57,7 +72,7 @@ router.get('/', async (req, res, next) => {
       .filter(p => p.ownerId === scopeId);
 
     if (ownedError) {
-      console.warn('[Supabase] Ignoring fetch error or table missing:', ownedError.message);
+      console.warn('[Supabase] Ignoring fetch error or table missing:', ownedError.message || ownedError);
       // Merge cached owned + cached shared
       const allCached = [...cachedForScope, ...sharedCacheProjects];
       const uniqueCached = Array.from(new Map(allCached.map(p => [p.id, p])).values());
@@ -113,31 +128,35 @@ router.post('/scaffold', async (req, res, next) => {
     // Always write to in-memory cache FIRST — guarantees GET /:id always works
     projectCache.set(projectId, newProject);
 
-    const { error } = await supabase
-      .from('projects')
-      .insert([{
-        id: projectId,
-        name: projectName,
-        status: 'active',
-        ownerid: scopeId,
-        templateid: templateId,
-      }]);
-
-    if (error) {
-      console.warn('[Supabase] Could not persist project (using in-memory cache):', error.message);
-    } else {
-      // Automatically add the creator as a teammate (owner)
-      const { error: teamErr } = await supabase
-        .from('project_teammates')
+    try {
+      const { error } = await supabase
+        .from('projects')
         .insert([{
-          project_id: projectId,
-          user_id: scopeId,
-          role: 'owner',
-          custom_role: null,
+          id: projectId,
+          name: projectName,
+          status: 'active',
+          ownerid: scopeId,
+          templateid: templateId,
         }]);
-      if (teamErr) {
-        console.warn('[Supabase] Could not persist owner to teammates:', teamErr.message);
+
+      if (error) {
+        console.warn('[Supabase] Could not persist project (using in-memory cache):', error.message);
+      } else {
+        // Automatically add the creator as a teammate (owner)
+        const { error: teamErr } = await supabase
+          .from('project_teammates')
+          .insert([{
+            project_id: projectId,
+            user_id: scopeId,
+            role: 'owner',
+            custom_role: null,
+          }]);
+        if (teamErr) {
+          console.warn('[Supabase] Could not persist owner to teammates:', teamErr.message);
+        }
       }
+    } catch (dbErr: any) {
+      console.warn('[Supabase] Hard fail creating project (using in-memory cache):', dbErr.message);
     }
 
     // ── RESPOND IMMEDIATELY (before Docker) so Cloudflare tunnel doesn't time out ──
@@ -150,9 +169,10 @@ router.post('/scaffold', async (req, res, next) => {
       .then((containerConfig) => {
         if (containerConfig.previewUrl) {
           projectCache.set(projectId, { ...newProject, previewUrl: containerConfig.previewUrl } as any);
-          // Persist previewUrl back to Supabase
+          // Persist previewUrl back to Supabase safely
           supabase.from('projects').update({ previewurl: containerConfig.previewUrl }).eq('id', projectId)
-            .then(({ error }) => { if (error) console.warn('[Supabase] previewUrl backfill failed:', error.message); });
+            .then(({ error }) => { if (error) console.warn('[Supabase] previewUrl backfill failed:', error.message); })
+            .catch(err => console.warn('[Supabase] previewUrl backfill crash:', err.message));
         }
         console.log(`[Scaffold] Container ready for project ${projectId}`);
       })
