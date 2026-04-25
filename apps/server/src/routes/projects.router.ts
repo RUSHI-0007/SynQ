@@ -21,6 +21,8 @@ router.get('/', async (req, res, next) => {
       return;
     }
 
+    let ownedProjects: any[] | null = null;
+    let ownedError: any = null;
     try {
       const { data: owned, error: ownedErr } = await supabase
         .from('projects')
