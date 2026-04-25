@@ -21,7 +21,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { path: str
 async function handleProxy(req: NextRequest, params: { path: string[] }) {
   try {
     const backendPath = params.path.join('/');
-    const queryStr = req.nextUrl.search; // Ensure full query string is captured faithfully by using NextRequest's nextUrl
+    const searchParamsStr = req.nextUrl.searchParams.toString();
+    const queryStr = searchParamsStr ? `?${searchParamsStr}` : '';
     const backendUrl = `${API_BASE}/api/${backendPath}${queryStr}`;
 
     const headers = new Headers(req.headers);
