@@ -74,7 +74,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       try {
         const token = await getToken();
         const res = await fetch(
-          getApiUrl(`api/workspace/${projectId}/file?path=${encodeURIComponent(activeFile)}`),
+          getApiUrl(`api/workspace/${projectId}/file?filePath=${encodeURIComponent(activeFile)}`),
           {
             method: 'PUT',
             headers: {

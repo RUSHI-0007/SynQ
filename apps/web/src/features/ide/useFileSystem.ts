@@ -84,7 +84,7 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
     try {
       const token = await getToken();
       const res = await fetch(
-        getApiUrl(`api/workspace/${projectId}/file?path=${encodeURIComponent(path)}`),
+        getApiUrl(`api/workspace/${projectId}/file?filePath=${encodeURIComponent(path)}`),
         { headers: getApiHeaders(token) }
       );
       if (!res.ok) {
@@ -131,7 +131,7 @@ export function useFileSystem(projectId: string): UseFileSystemReturn {
 
   const deleteFile = useCallback(async (path: string) => {
     const token = await getToken();
-    const res = await fetch(getApiUrl(`api/workspace/${projectId}/files?path=${encodeURIComponent(path)}`), {
+    const res = await fetch(getApiUrl(`api/workspace/${projectId}/files?filePath=${encodeURIComponent(path)}`), {
       method: 'DELETE',
       headers: getApiHeaders(token),
     });

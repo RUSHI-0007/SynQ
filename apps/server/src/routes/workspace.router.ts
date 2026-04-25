@@ -53,9 +53,9 @@ router.post('/:projectId/files', async (req, res, next) => {
 router.get('/:projectId/file', async (req, res, next) => {
   try {
     const { projectId } = req.params;
-    const filePath = req.query['path'] as string;
+    const filePath = req.query['filePath'] as string;
     if (!projectId) { res.status(400).json({ error: 'projectId is required' }); return; }
-    if (!filePath) { res.status(400).json({ error: 'path query parameter is required' }); return; }
+    if (!filePath) { res.status(400).json({ error: 'filePath query parameter is required' }); return; }
 
     const content = await FsService.readFile(projectId, filePath);
     res.json({ content });
@@ -107,10 +107,10 @@ router.put('/:projectId/file', async (req, res, next) => {
 router.delete('/:projectId/files', async (req, res, next) => {
   try {
     const { projectId } = req.params;
-    const filePath = req.query['path'] as string;
+    const filePath = req.query['filePath'] as string;
 
     if (!projectId) { res.status(400).json({ error: 'projectId is required' }); return; }
-    if (!filePath) { res.status(400).json({ error: 'path query parameter is required' }); return; }
+    if (!filePath) { res.status(400).json({ error: 'filePath query parameter is required' }); return; }
 
     await FsService.deleteFile(projectId, filePath);
     res.json({ success: true });
