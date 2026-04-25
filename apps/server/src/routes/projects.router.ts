@@ -217,6 +217,56 @@ router.get('/:id', async (req, res, next) => {
     next(error);
   }
 });
+// ─── DELETE /api/projects/:id ─────────────────────────────────────────────
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const scopeId = req.headers['x-user-id'] || req.query.scopeId;
+
+    if (!scopeId || typeof scopeId !== 'string') {
+      res.status(400).json({ error: 'scopeId/userId is required to verify ownership' });
+      return;
+    }
+
+    // 1. Verify ownership
+    const cached = projectCache.get(id);
+    let ownerId = cached?.ownerId;
+
+    if (!ownerId) {
+      const { data: project, error } = await supabase
+        .from('projects')
+        .select('ownerId')
+        .eq('id', id)
+        .single();
+        
+      if (error || !project) {
+        res.status(404).json({ error: 'Project not found' });
+        return;
+      }
+      ownerId = project.ownerId;
+    }
+
+    if (ownerId !== scopeId) {
+      res.status(403).json({ error: 'Forbidden: Only the owner can delete this sandbox.' });
+      return;
+    }
+
+    // 2. Cleanup Docker container in background
+    const exec = require('child_process').exec;
+    exec(`docker rm -f synq-${id}`, (err: any) => {
+      if (err) console.warn(`[Delete] Docker container cleanup ok logic:`, err.message);
+    });
+
+    // 3. Delete from Cache & Supabase
+    projectCache.delete(id);
+    await supabase.from('projects').delete().eq('id', id);
+
+    res.json({ success: true, message: 'Sandbox deleted' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ─── GET /api/projects/:id/teammates ──────────────────────────────────────
 router.get('/:id/teammates', async (req, res, next) => {
   try {

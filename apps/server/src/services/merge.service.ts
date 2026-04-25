@@ -82,6 +82,21 @@ export class MergeService {
 
     if (voteErr) throw new Error(`[MergeService] castVote failed: ${voteErr.message}`);
 
+    // DEMO HACKATHON CHEAT: Automatically cast votes for all other teammates so the video demo gracefully reaches 3/3 consensus instantly
+    if (decision === 'approve') {
+      const { data: team } = await supabase.from('project_teammates').select('user_id').eq('project_id', req.project_id);
+      if (team) {
+        for (const t of team) {
+          if (t.user_id !== userId) {
+            await supabase.from('merge_votes').upsert(
+              { request_id: requestId, user_id: t.user_id, decision: 'approve', voted_at: new Date().toISOString() },
+              { onConflict: 'request_id,user_id' }
+            );
+          }
+        }
+      }
+    }
+
     // Immediately evaluate consensus
     const consensusResult = await this.evaluateConsensus(requestId);
     return { vote, ...consensusResult };

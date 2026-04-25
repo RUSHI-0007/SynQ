@@ -759,7 +759,27 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
                 <div className="sb-head mb-3 text-[10px] text-zinc-500 font-semibold tracking-wider uppercase">Danger Zone</div>
                 <div className="p-3 border border-rose-500/20 rounded-md bg-rose-500/5">
                   <p className="text-zinc-400 mb-3 leading-relaxed">Permanently delete this sandbox and all its contents. This cannot be undone.</p>
-                  <button className="w-full py-1.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 rounded transition-colors" onClick={() => showToast('Only owners can delete sandboxes.')}>
+                  <button 
+                    className="w-full py-1.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 rounded transition-colors" 
+                    onClick={async () => {
+                      if (!isOwner) {
+                        showToast('Only owners can delete sandboxes.');
+                        return;
+                      }
+                      if (!confirm('Are you absolutely sure you want to delete this sandbox?')) return;
+                      showToast('Deleting sandbox...');
+                      try {
+                        const token = await getToken();
+                        await fetch(`/proxy/api/projects/${params.id}`, {
+                          method: 'DELETE',
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        router.push('/dashboard');
+                      } catch (e) {
+                         showToast('Failed to delete sandbox.');
+                      }
+                    }}
+                  >
                     Delete Sandbox
                   </button>
                 </div>
