@@ -9,6 +9,7 @@ import { useConsensus } from "@/features/merge/useConsensus";
 import { VoiceRoom } from "@/features/voice/VoiceRoom";
 import { InviteButton } from "@/features/projects/InviteButton";
 import { FileNode } from "@hackathon/shared-types";
+import { useRouter } from "next/navigation";
 import "@/app/redesign/redesign.css";
 
 // Dynamic imports for browser-only APIs
@@ -48,6 +49,7 @@ function getIconChars(filename: string) {
 }
 
 export default function WorkspacePage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const { user } = useUser();
   const { getToken } = useAuth();
   const userName = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username || 'Anonymous';
@@ -762,6 +764,7 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
                   <button 
                     className="w-full py-1.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 rounded transition-colors" 
                     onClick={async () => {
+                      const isOwner = teammates.some(t => t.id === user?.id && t.role === 'owner');
                       if (!isOwner) {
                         showToast('Only owners can delete sandboxes.');
                         return;
